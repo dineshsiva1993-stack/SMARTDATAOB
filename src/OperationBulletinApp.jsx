@@ -2311,17 +2311,18 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
   // already computed on the Ramp-up sheet from the sewing operations. Currency and Per Pcs / Per Dzn
   // basis are both selectable per style; CM Realization % is now a direct manual entry (factory's
   // own realization figure) instead of being force-derived from Plan Eff%.
-  const cmCurrency = style.obCmCurrency || "USD";
+  const safeStyle = style || {};
+
+  const cmCurrency = safeStyle.obCmCurrency || "USD";
   const cmSymbol = cmCurrencySymbol(cmCurrency);
-  const cmBasis = style.obCmBasis === "pcs" ? "pcs" : "dzn";
-  const cmPerMinute = num(style.obCmPerMinute);
-  const cmAvgEffPct = num(style.obCmAvgEffPct) > 0 ? num(style.obCmAvgEffPct) : (avgSewingEffPct || 100);
+  const cmBasis = safeStyle.obCmBasis === "pcs" ? "pcs" : "dzn";
+  const cmPerMinute = num(safeStyle.obCmPerMinute || 0);
+  const cmAvgEffPct = num(safeStyle.obCmAvgEffPct || 0) > 0 ? num(safeStyle.obCmAvgEffPct || 0) : (avgSewingEffPct || 100);
   const cmEffFactor = cmAvgEffPct > 0 ? cmAvgEffPct / 100 : 1;
   const cmValuePerPc = cmPerMinute > 0 && cmEffFactor > 0 ? (summary.sewToPackSmv / cmEffFactor) * cmPerMinute : 0;
   const cmValuePerDzn = cmValuePerPc * 12;
   const cmPerDzn = cmBasis === "pcs" ? cmValuePerPc : cmValuePerDzn;
-  const cmPerMachine = totalObManpower > 0 ? cmPerDzn / totalObManpower : 0;
-  const [includeHeadingsInExport, setIncludeHeadingsInExport] = useState(true);
+  const cmPerMachine = totalObManpower > 0 ? cmPerDzn / totalObManpower : 0;  const [includeHeadingsInExport, setIncludeHeadingsInExport] = useState(true);
   // Which report sheets go into the Excel export — planner can untick Ramp-up or Product Costing
   // if this style doesn't need them, instead of always getting all 3 sheets bundled together.
   const [exportSheetSel, setExportSheetSel] = useState({ ob: true, rampup: true, costing: true });
