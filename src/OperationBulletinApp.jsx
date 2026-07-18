@@ -2253,7 +2253,7 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
   }, [actualSewingMp, sewingSam, shiftMinutes]);
   // No. of Lines the order is planned across, and the resulting per-line day target — feeds both
   // the Ramp-up Plan section and the Product Costing sheet's "Planned Line" field.
-  const noOfLines = num(style.obPlannedLines);
+ const noOfLines = num(style?.obPlannedLines || 0);
   const linePerDayTarget = noOfLines > 0 ? num(style.obTargetQtyPerDay) / noOfLines : 0;
   // Ramp-up Plan uses its own Per-Line Target Qty/Day (obRampPerLineTarget) so the planner can key
   // in the line's real takt (e.g. 1200 pcs/line/day) directly instead of back-deriving it from the
