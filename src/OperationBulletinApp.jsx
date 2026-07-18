@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 const GSD_LOGO_DATA_URI = "data:image/jpeg;base64,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";
 
@@ -69,6 +70,16 @@ function useObUsers() {
 const uid = () => Math.random().toString(36).slice(2, 10);
 const money = (n) => (isFinite(n) ? n.toLocaleString("en-IN", { maximumFractionDigits: 2 }) : "0");
 const num = (v) => parseFloat(v) || 0;
+// Single source of truth for "how many people are on this operation" — always derived fresh from
+// Op + Hp (Sewing rows use these two split boxes) rather than trusting the op.manpower string,
+// which can fall out of sync with Op/Hp if a row was inserted/imported through a path that didn't
+// go through updateOpHpQc. Falls back to the manpower field (Cutting/QC/Packing rows, which only
+// have a single Manpower box) and finally to 1, same as the old `num(op.manpower || 1)` default.
+const allocatedMpOf = (op) => {
+  const opHp = num(op?.opCount) + num(op?.hpCount);
+  if (opHp > 0) return opHp;
+  return num(op?.manpower) || 1;
+};
 const SHIFT_MINUTES = 480; // standard 8-hour shift, used for efficiency & capacity calc
 
 const DEPT_KEYS = [
@@ -99,7 +110,7 @@ function computeOBSummary(operations) {
     const s = byKey[op.section] || byKey.sewing;
     s.smv += num(op.sam);
     s.count += 1;
-    s.manpower += num(op.manpower || 1);
+    s.manpower += allocatedMpOf(op);
   });
   const sewToQcSmv = byKey.sewing.smv + byKey.qc.smv;
   const sewToPackSmv = sewToQcSmv + byKey.packing.smv;
@@ -114,7 +125,7 @@ function computeLineBalancing(operations) {
   const sewOps = (operations || []).filter((op) => op.section === "sewing" && num(op.sam) > 0);
   const rows = sewOps.map((op) => ({
     ...op,
-    capacityPerHr: num(op.manpower || 1) > 0 ? (num(op.manpower || 1) * 60) / num(op.sam) : 0,
+    capacityPerHr: allocatedMpOf(op) > 0 ? (allocatedMpOf(op) * 60) / num(op.sam) : 0,
   })).filter((r) => r.capacityPerHr > 0);
   if (rows.length === 0) return { rows: [], bottleneck: null, avgCapacity: 0, ucl: 0, lcl: 0 };
   const sorted = [...rows].sort((a, b) => a.capacityPerHr - b.capacityPerHr);
@@ -193,49 +204,81 @@ function suggestMachine(opName) {
   return hit ? hit.machine : "";
 }
 
-// Manpower balance per sewing operation against a customer/head target efficiency % — mirrors a
-// factory Operation Breakdown sheet's "Plan Cap → Man Power → OP/HP → EFF%" columns: how many
-// operators an operation NEEDS to hit the target qty/day at the given head efficiency %, versus
-// how many are actually allocated (manual entry), so the shortfall/surplus is visible at a glance.
-function computeManpowerBalance(operations, targetQtyPerDay, headEffPct, shiftMinutes = SHIFT_MINUTES) {
+// Manpower balance per operation against a customer/head target efficiency % — mirrors a factory
+// Operation Breakdown sheet's "Plan Cap → Man Power → OP/HP → EFF%" columns: how many operators an
+// operation NEEDS to hit the target qty/day at the given head efficiency %, versus how many are
+// actually allocated (manual entry), so the shortfall/surplus is visible at a glance. Covers every
+// section (Cutting, Sewing, QC, Packing) that has a SAM entered — not Sewing only — so the same
+// Required MP / Eff% columns show up for Cutting, QC and Packing rows in the OB table too.
+// sections: optional array to restrict which OB_SECTIONS keys are included (defaults to all four).
+function computeManpowerBalance(operations, targetQtyPerDay, headEffPct, shiftMinutes = SHIFT_MINUTES, sections = null) {
   const target = num(targetQtyPerDay);
   const headEff = num(headEffPct) || 100;
   const hourlyTarget = target > 0 ? target / (shiftMinutes / 60) : 0;
   const rows = (operations || [])
-    .filter((op) => op.section === "sewing" && num(op.sam) > 0)
+    .filter((op) => !op.isHeading && num(op.sam) > 0 && (!sections || sections.includes(op.section)))
     .map((op) => {
       const sam = num(op.sam);
       const cap100PerHr = 60 / sam; // pieces/hr per operator at 100% efficiency
       const planCapPerHr = cap100PerHr * (headEff / 100);
       const requiredMp = hourlyTarget > 0 && planCapPerHr > 0 ? hourlyTarget / planCapPerHr : 0;
-      const allocatedMp = num(op.manpower || 1);
+      const allocatedMp = allocatedMpOf(op);
       const balanceMp = allocatedMp - requiredMp;
       const effPct = allocatedMp > 0 ? (requiredMp / allocatedMp) * 100 : 0;
-      return { id: op.id, name: op.name, slNo: op.slNo, sam, cap100PerHr, planCapPerHr, requiredMp, allocatedMp, balanceMp, effPct };
+      return { id: op.id, name: op.name, slNo: op.slNo, section: op.section, sam, cap100PerHr, planCapPerHr, requiredMp, allocatedMp, balanceMp, effPct };
     });
   return { hourlyTarget, headEff, rows };
 }
 
+// Currencies available for the CM Calculation section — factory CPM/CM figures can be quoted in
+// any of these depending on buyer/costing sheet; pick one, every CM stat re-labels with its symbol.
+const CM_CURRENCIES = [
+  { code: "USD", symbol: "$" },
+  { code: "INR", symbol: "₹" },
+  { code: "EUR", symbol: "€" },
+  { code: "GBP", symbol: "£" },
+  { code: "BDT", symbol: "৳" },
+  { code: "LKR", symbol: "Rs" },
+];
+function cmCurrencySymbol(code) {
+  return (CM_CURRENCIES.find((c) => c.code === code) || CM_CURRENCIES[0]).symbol;
+}
+
 // Day-wise production ramp-up plan. Day 1 onward (up to peak) is manually entered by the planner —
-// every line's ramp-up curve is different. Once the manual entries stop, the rest of the order is
+// every line's ramp-up curve is different. The planner enters each day's qty PER LINE (the same
+// figure they'd read off one line's ramp-up curve); we multiply by No. of Lines to get that day's
+// true total across the whole order. Once the manual entries stop, the rest of the order is
 // auto-filled at the Line Target (Customer Target Qty/Day): remaining qty = Order Qty − manually
-// entered qty so far, and remaining days = that ÷ Line Target (rounded up), so total days to
+// entered total so far, and remaining days = that ÷ Line Target (rounded up), so total days to
 // complete the order comes out automatically — no manual lead-time entry needed.
-function computeRampUpPlan(orderQty, lineTarget, manualDays) {
+function computeRampUpPlan(orderQty, lineTarget, manualDays, noOfLines) {
   const order = num(orderQty);
   const target = num(lineTarget);
-  const manual = (manualDays || []).map((r, i) => ({ day: i + 1, qty: num(r.qty), manual: true }));
+  const lines = num(noOfLines) > 0 ? num(noOfLines) : 1;
+  const manual = (manualDays || []).map((r, i) => ({ day: i + 1, qty: num(r.qty) * lines, perLineQty: num(r.qty), manual: true }));
   const manualSum = manual.reduce((a, r) => a + r.qty, 0);
   const remaining = Math.max(0, order - manualSum);
-  const autoDaysCount = target > 0 && remaining > 0 ? Math.ceil(remaining / target) : 0;
+  // Exact (fractional) days needed at the Line Target — e.g. 44400 remaining ÷ 2400/day = 18.5 days.
+  // Kept alongside the rounded-up day count: the row list needs whole days to enumerate, but the
+  // lead-time figure should show the precise fraction (18.5 days), not the rounded-up 19.
+  const autoDaysExact = target > 0 && remaining > 0 ? remaining / target : 0;
+  const autoDaysCount = Math.ceil(autoDaysExact);
   const autoRows = [];
   let left = remaining;
   for (let i = 0; i < autoDaysCount; i++) {
     const qty = i === autoDaysCount - 1 ? left : target;
-    autoRows.push({ day: manual.length + i + 1, qty: Math.round(qty), manual: false });
+    autoRows.push({ day: manual.length + i + 1, qty: Math.round(qty), perLineQty: Math.round(qty) / lines, manual: false });
     left -= target;
   }
-  return { rows: [...manual, ...autoRows], manualSum, remaining, autoDaysCount, totalDays: manual.length + autoDaysCount };
+  return {
+    rows: [...manual, ...autoRows],
+    manualSum,
+    remaining,
+    autoDaysCount,
+    autoDaysExact,
+    totalDays: manual.length + autoDaysCount,
+    totalDaysExact: manual.length + autoDaysExact,
+  };
 }
 
 // Machine-wise usage summary — how many operations (and how much manpower) sit on each machine type,
@@ -247,7 +290,7 @@ function computeMachineUsage(operations) {
     if (!m) return;
     if (!map[m]) map[m] = { machine: m, opCount: 0, manpower: 0 };
     map[m].opCount += 1;
-    map[m].manpower += num(op.manpower || 1);
+    map[m].manpower += allocatedMpOf(op);
   });
   return Object.values(map).sort((a, b) => b.manpower - a.manpower);
 }
@@ -440,32 +483,176 @@ function readXlsxFile(file, onRows, onError) {
 }
 // Full-design Excel report export. The free SheetJS build (`xlsx` package) used above for plain
 // data round-tripping cannot write cell colors/borders/fonts — that's a Pro-only feature of that
-// library. Excel *does* fully respect inline CSS on an HTML <table> saved with a .xls name (a
-// well-known, reliable trick — no paid library needed), so the styled Operation Bulletin report
-// below is built as HTML and downloaded as .xls instead of going through XLSX.write. Multiple
-// sheets work the same way: one <table> per sheet, in the same order as the <x:ExcelWorksheet>
-// entries declared in the head — Excel pairs them up by position.
+// library. Excel *does* fully respect inline CSS on an HTML table saved as .xls (no paid library
+// needed), so the styled Operation Bulletin report below is built as HTML.
+//
+// IMPORTANT — multi-sheet correctness: simply putting several <table> elements one after another
+// in a single <body> and declaring matching <x:ExcelWorksheet> entries does NOT reliably split
+// them into separate tabs — Excel has been seen dumping every table onto the FIRST sheet and
+// leaving the rest blank. The only reliable way to get each table on its own real worksheet tab
+// is the actual format Excel itself produces for "Web Page, Single File (.mht)": a MIME
+// multipart/related message where every sheet is its OWN linked HTML part (Content-Location),
+// and a small "root" part declares each <x:ExcelWorksheet><x:WorksheetSource HRef="sheetN.htm"/>
+// pointing at that part. That's what buildMhtWorkbook does below.
 function escapeHtml(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function downloadHtmlAsExcel(filename, sheets) {
+function buildMhtWorkbook(list) {
+  const boundary = `----=_NextPart_${Math.random().toString(36).slice(2)}`;
+  const sheetFiles = list.map((sh, i) => `sheet${String(i + 1).padStart(3, "0")}.htm`);
+  const worksheetDecls = list.map((sh, i) => `<x:ExcelWorksheet>
+<x:Name>${escapeHtml(sh.name)}</x:Name>
+<x:WorksheetSource HRef="${sheetFiles[i]}"/>
+</x:ExcelWorksheet>`).join("\n");
+  const linkTags = sheetFiles.map((f) => `<link rel="File-List" href="${f}">`).join("\n");
+  const rootHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="ProgId" content="Excel.Sheet">
+${linkTags}
+<!--[if gte mso 9]><xml>
+<x:ExcelWorkbook>
+<x:ExcelWorksheets>
+${worksheetDecls}
+</x:ExcelWorksheets>
+</x:ExcelWorkbook>
+</xml><![endif]-->
+</head>
+<body></body>
+</html>`;
+
+  const parts = [
+    { location: "root.htm", html: rootHtml },
+    ...list.map((sh, i) => ({
+      location: sheetFiles[i],
+      html: `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head>
+<body>${sh.html}</body>
+</html>`,
+    })),
+  ];
+
+  const CRLF = "\r\n";
+  let body = `MIME-Version: 1.0${CRLF}Content-Type: multipart/related; boundary="${boundary}"${CRLF}${CRLF}`;
+  body += `This is a multi-part message using the Excel workbook MIME format.${CRLF}${CRLF}`;
+  parts.forEach((p) => {
+    body += `--${boundary}${CRLF}`;
+    body += `Content-Type: text/html; charset="utf-8"${CRLF}`;
+    body += `Content-Location: ${p.location}${CRLF}${CRLF}`;
+    body += p.html + CRLF + CRLF;
+  });
+  body += `--${boundary}--${CRLF}`;
+  return body;
+}
+// ---- Genuine styled .xlsx export (ExcelJS) --------------------------------------------------
+// Reads the inline CSS already present on each report's HTML <table> (see obReportStyles above)
+// and reproduces it as real Excel formatting — background fill, borders, bold, alignment — plus
+// colSpan/rowSpan as merged cells and any <img> as a real embedded picture. This keeps ONE source
+// of truth for the report design (the HTML/CSS in buildOperationBulletinReportHtml etc.) instead
+// of maintaining a second, separate "Excel version" of every report by hand.
+function cssColorToArgb(str) {
+  if (!str) return null;
+  const s = str.trim();
+  let m = s.match(/^#?([0-9a-fA-F]{6})$/);
+  if (m) return "FF" + m[1].toUpperCase();
+  m = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (m) {
+    const toHex = (n) => Number(n).toString(16).padStart(2, "0").toUpperCase();
+    return "FF" + toHex(m[1]) + toHex(m[2]) + toHex(m[3]);
+  }
+  return null;
+}
+function borderSideFromStyle(widthStr, styleStr, colorStr) {
+  const px = parseFloat(widthStr) || 0;
+  if (!px || !styleStr || styleStr === "none") return undefined;
+  const argb = cssColorToArgb(colorStr) || "FF000000";
+  return { style: px >= 2 ? "medium" : "thin", color: { argb } };
+}
+async function htmlTableIntoWorksheet(ws, tableEl, workbookForImages) {
+  const rows = Array.from(tableEl.rows);
+  const occupied = new Set();
+  let maxCol = 0;
+  const colTextLen = {};
+  for (let r = 0; r < rows.length; r++) {
+    const tr = rows[r];
+    let c = 0;
+    for (const td of Array.from(tr.cells)) {
+      while (occupied.has(`${r},${c}`)) c++;
+      const rowSpan = td.rowSpan || 1;
+      const colSpan = td.colSpan || 1;
+      const st = td.style;
+      const img = td.querySelector && td.querySelector("img");
+      const rawText = (td.textContent || "").trim();
+      const upper = (st.textTransform || "").toLowerCase() === "uppercase";
+      const cellRef = ws.getCell(r + 1, c + 1);
+      if (!img) cellRef.value = upper ? rawText.toUpperCase() : rawText;
+      const bg = cssColorToArgb(st.backgroundColor);
+      if (bg) cellRef.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      const bold = st.fontWeight === "bold" || Number(st.fontWeight) >= 600;
+      const sizePx = parseFloat(st.fontSize) || 11;
+      cellRef.font = { bold, size: Math.max(8, Math.round(sizePx * 0.75)) };
+      cellRef.alignment = {
+        horizontal: st.textAlign || (img ? "center" : undefined),
+        vertical: st.verticalAlign === "middle" ? "middle" : "top",
+        wrapText: true,
+      };
+      const border = {
+        top: borderSideFromStyle(st.borderTopWidth, st.borderTopStyle, st.borderTopColor),
+        bottom: borderSideFromStyle(st.borderBottomWidth, st.borderBottomStyle, st.borderBottomColor),
+        left: borderSideFromStyle(st.borderLeftWidth, st.borderLeftStyle, st.borderLeftColor),
+        right: borderSideFromStyle(st.borderRightWidth, st.borderRightStyle, st.borderRightColor),
+      };
+      if (border.top || border.bottom || border.left || border.right) cellRef.border = border;
+      colTextLen[c] = Math.max(colTextLen[c] || 0, rawText.length);
+
+      if (rowSpan > 1 || colSpan > 1) {
+        ws.mergeCells(r + 1, c + 1, r + rowSpan, c + colSpan);
+        for (let rr = r; rr < r + rowSpan; rr++)
+          for (let cc = c; cc < c + colSpan; cc++) {
+            occupied.add(`${rr},${cc}`);
+            if (rr !== r || cc !== c) {
+              const mc = ws.getCell(rr + 1, cc + 1);
+              mc.fill = cellRef.fill; mc.border = cellRef.border;
+            }
+          }
+      }
+      if (img && img.src && workbookForImages) {
+        const extMatch = img.src.match(/^data:image\/(\w+);base64,/);
+        const ext = (extMatch ? extMatch[1] : "png").toLowerCase();
+        try {
+          const imgId = workbookForImages.addImage({ base64: img.src, extension: ext === "jpg" ? "jpeg" : ext });
+          ws.addImage(imgId, { tl: { col: c, row: r }, br: { col: c + colSpan, row: r + rowSpan } });
+        } catch (e) { /* unsupported image format — leave cell blank rather than fail the export */ }
+      }
+      maxCol = Math.max(maxCol, c + colSpan);
+      c += colSpan;
+    }
+  }
+  for (let c = 0; c < maxCol; c++) {
+    ws.getColumn(c + 1).width = Math.min(38, Math.max(9, (colTextLen[c] || 8) + 3));
+  }
+}
+async function downloadHtmlAsExcel(filename, sheets) {
   // Accept either a single HTML table string (old call shape) or an array of { name, html }.
   const list = typeof sheets === "string" ? [{ name: "Sheet1", html: sheets }] : sheets;
-  const worksheetDecls = list.map((sh) => `<x:ExcelWorksheet>
-<x:Name>${escapeHtml(sh.name)}</x:Name>
-<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-</x:ExcelWorksheet>`).join("\n");
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8" />
-<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>
-${worksheetDecls}
-</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
-</head><body>${list.map((sh) => sh.html).join("\n")}</body></html>`;
-  const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+  const wb = new ExcelJS.Workbook();
+  const usedNames = new Set();
+  for (const sh of list) {
+    const container = document.createElement("div");
+    container.innerHTML = sh.html;
+    const table = container.querySelector("table") || container;
+    let safeName = (sh.name || "Sheet1").replace(/[\\/?*\[\]:]/g, " ").trim().slice(0, 31) || "Sheet1";
+    let n = safeName, i = 2;
+    while (usedNames.has(n)) { n = `${safeName.slice(0, 28)} ${i++}`; }
+    usedNames.add(n);
+    const ws = wb.addWorksheet(n);
+    await htmlTableIntoWorksheet(ws, table, wb);
+  }
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = filename.replace(/\.xls$/i, ".xlsx");
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -490,19 +677,162 @@ function obReportStyles() {
     totalRow: "font-family:Calibri,Arial,sans-serif;background:#FCE8D6;font-weight:bold;font-size:11px;border:1px solid #B45F06;padding:5px 6px;",
   };
 }
-function buildOperationBulletinReportHtml(style, operations, summary, mpBalance, balancing, machineUsage, helperSummary) {
+// Extra reference photos (style.extraPhotoRefs) beyond the one main Garment Sketch / Photo — laid
+// out as its own "ADDITIONAL PHOTOS" band at the bottom of a report table, one <img> per <td> (the
+// Excel exporter in htmlTableIntoWorksheet only embeds the FIRST <img> it finds inside a cell, so
+// each extra photo needs its own cell rather than being stacked inside the main picture cell).
+function buildExtraPhotosBlockHtml(style, s, cols, thumbPx = 90) {
+  const extras = (Array.isArray(style.extraPhotoRefs) ? style.extraPhotoRefs : []).filter(Boolean);
+  if (!extras.length) return "";
+  const rows = [];
+  for (let i = 0; i < extras.length; i += cols) {
+    const chunk = extras.slice(i, i + cols);
+    const cells = chunk
+      .map(
+        (uri) =>
+          `<td style="${s.cell}text-align:center;vertical-align:middle;padding:6px;"><img src="${uri}" alt="Extra Photo" style="max-width:${thumbPx}px;max-height:${thumbPx}px;width:auto;height:auto;object-fit:cover;" /></td>`
+      )
+      .join("");
+    const pad = cols - chunk.length;
+    rows.push(`<tr>${cells}${pad > 0 ? `<td colspan="${pad}" style="${s.cell}"></td>` : ""}</tr>`);
+  }
+  return `
+    <tr><td colspan="${cols}" style="height:6px;border:none;"></td></tr>
+    <tr><td colspan="${cols}" style="${s.bar}">ADDITIONAL PHOTOS</td></tr>
+    ${rows.join("")}`;
+}
+// Renders a factory-style "LINE BALANCING GRAPH" — a blue Operation Capacity line across every
+// operation, plus flat red (UCL) and green (LCL) reference lines — as a self-contained SVG string.
+// Used two ways: embedded live as inline <svg> for on-screen Preview/Print, or rasterised to a PNG
+// (see svgToPngDataUri) so it can be embedded as a real picture in the Excel export.
+function buildLineBalancingGraphSvg(balancing) {
+  const rows = (balancing?.rows || []).filter((r) => !r.isHeading);
+  if (!rows.length) return { svg: "", width: 0, height: 0 };
+  const W = Math.max(760, 110 + rows.length * 75);
+  const H = 380;
+  const padL = 55, padR = 20, padT = 55, padB = 85;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  const vals = [...rows.map((r) => r.capacityPerHr || 0), balancing.ucl || 0, balancing.lcl || 0].filter((v) => v > 0);
+  const rawMax = Math.max(...vals, 1);
+  const rawMin = Math.min(...vals, rawMax);
+  const pad = Math.max((rawMax - rawMin) * 0.25, rawMax * 0.1, 10);
+  const yMax = rawMax + pad;
+  const yMin = Math.max(0, rawMin - pad);
+  const span = yMax - yMin || 1;
+  const yOf = (v) => padT + plotH - ((v - yMin) / span) * plotH;
+  const xStep = rows.length > 1 ? plotW / (rows.length - 1) : 0;
+  const xOf = (i) => padL + (rows.length > 1 ? i * xStep : plotW / 2);
+
+  const TICKS = 5;
+  const gridLines = Array.from({ length: TICKS + 1 }, (_, i) => {
+    const v = yMin + (span * i) / TICKS;
+    const y = yOf(v);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#e5e0d5" stroke-width="1" />
+      <text x="${padL - 6}" y="${(y + 3).toFixed(1)}" font-size="10" text-anchor="end" fill="#6b6455" font-family="Calibri,Arial,sans-serif">${Math.round(v)}</text>`;
+  }).join("");
+
+  const linePoints = rows.map((r, i) => `${xOf(i).toFixed(1)},${yOf(r.capacityPerHr || 0).toFixed(1)}`).join(" ");
+  const dots = rows.map((r, i) => {
+    const x = xOf(i), y = yOf(r.capacityPerHr || 0);
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="#2E75B6" />
+      <text x="${x.toFixed(1)}" y="${(y - 7).toFixed(1)}" font-size="9" text-anchor="middle" fill="#2E75B6" font-family="Calibri,Arial,sans-serif">${Math.round(r.capacityPerHr || 0)}</text>`;
+  }).join("");
+
+  const xLabels = rows.map((r, i) => {
+    const x = xOf(i);
+    const words = (r.name || `Op ${r.slNo}`).toUpperCase().split(/\s+/).filter(Boolean);
+    const lines = [];
+    let cur = "";
+    words.forEach((w) => {
+      if ((cur ? cur + " " + w : w).length > 11) { if (cur) lines.push(cur); cur = w; }
+      else cur = cur ? cur + " " + w : w;
+    });
+    if (cur) lines.push(cur);
+    const shown = lines.slice(0, 2);
+    const tspans = shown.map((ln, li) => `<tspan x="${x.toFixed(1)}" dy="${li === 0 ? 0 : 10}">${escapeHtml(ln)}</tspan>`).join("");
+    return `<text x="${x.toFixed(1)}" y="${H - padB + 14}" font-size="8.5" text-anchor="middle" fill="#4a4438" font-family="Calibri,Arial,sans-serif">${tspans}</text>`;
+  }).join("");
+
+  const uclY = balancing.ucl > 0 ? yOf(balancing.ucl) : null;
+  const lclY = balancing.lcl > 0 ? yOf(balancing.lcl) : null;
+  const refLines = `
+    ${uclY != null ? `<line x1="${padL}" y1="${uclY.toFixed(1)}" x2="${W - padR}" y2="${uclY.toFixed(1)}" stroke="#C0504D" stroke-width="2" stroke-dasharray="6,3" />` : ""}
+    ${lclY != null ? `<line x1="${padL}" y1="${lclY.toFixed(1)}" x2="${W - padR}" y2="${lclY.toFixed(1)}" stroke="#4CAF50" stroke-width="2" stroke-dasharray="6,3" />` : ""}`;
+
+  const legend = `
+    <g font-family="Calibri,Arial,sans-serif" font-size="10">
+      <line x1="${W - 205}" y1="18" x2="${W - 185}" y2="18" stroke="#2E75B6" stroke-width="2" /><text x="${W - 179}" y="21.5" fill="#333">OPERATION CAPACITY</text>
+      <line x1="${W - 205}" y1="33" x2="${W - 185}" y2="33" stroke="#C0504D" stroke-width="2" stroke-dasharray="6,3" /><text x="${W - 179}" y="36.5" fill="#333">UCL (${Math.round(balancing.ucl || 0)})</text>
+      <line x1="${W - 205}" y1="48" x2="${W - 185}" y2="48" stroke="#4CAF50" stroke-width="2" stroke-dasharray="6,3" /><text x="${W - 179}" y="51.5" fill="#333">LCL (${Math.round(balancing.lcl || 0)})</text>
+    </g>`;
+
+  const svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff" />
+    <text x="${W / 2}" y="16" font-size="13" font-weight="bold" text-anchor="middle" fill="#375623" font-family="Calibri,Arial,sans-serif">LINE BALANCING GRAPH</text>
+    ${gridLines}
+    <rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="none" stroke="#c9c2b0" />
+    ${refLines}
+    <polyline points="${linePoints}" fill="none" stroke="#2E75B6" stroke-width="2" />
+    ${dots}
+    ${xLabels}
+    ${legend}
+  </svg>`;
+  return { svg, width: W, height: H };
+}
+// Rasterises the SVG above into a PNG data URI via an offscreen <canvas> — only needed for the
+// Excel export path, since ExcelJS can embed jpeg/png/gif pictures but not native charts or SVG.
+// Async (Image loading is async), so this is only awaited at export time (see handleObExportExcel),
+// not during the synchronous HTML building used for on-screen Preview/Print (those embed the live
+// SVG directly instead, which needs no conversion).
+function svgToPngDataUri(svgMarkup, width, height) {
+  return new Promise((resolve) => {
+    try {
+      const svgBlob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/png"));
+        } catch (e) {
+          resolve("");
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(""); };
+      img.src = url;
+    } catch (e) {
+      resolve("");
+    }
+  });
+}
+function buildOperationBulletinReportHtml(style, operations, summary, mpBalance, balancing, machineUsage, helperSummary, includeHeadings = true, chartImageUri = "") {
   const s = obReportStyles();
   const td = (v, styleStr) => `<td style="${styleStr}">${escapeHtml(v)}</td>`;
   const COLS = 12; // Sl No, Operation, Section, Machine, SAM, 100% Cap, Plan Cap, OP, HP, Manpower, Eff %, Cap/Hr
   const mpById = Object.fromEntries((mpBalance?.rows || []).map((r) => [r.id, r]));
   const capById = Object.fromEntries((balancing?.rows || []).map((r) => [r.id, r]));
-  const totalManpower = (operations || []).filter((o) => !o.isHeading).reduce((a, o) => a + num(o.manpower || 1), 0);
+  const totalManpower = (operations || []).filter((o) => !o.isHeading).reduce((a, o) => a + allocatedMpOf(o), 0);
+
+  const photoCellHtml = style.photoRef
+    ? `<img src="${style.photoRef}" alt="Garment Sketch" style="max-width:260px;max-height:260px;width:auto;height:auto;object-fit:contain;" />`
+    : `<span style="color:#bbb;font-size:11px;">No photo uploaded</span>`;
 
   const infoRows = `
     <tr>
       ${td("STYLE NO", s.infoLabel)}${td(style.styleNo || "", s.infoValue)}
       ${td("BUYER", s.infoLabel)}${td(style.buyer || "", s.infoValue)}
       ${td("DESCRIPTION", s.infoLabel)}${td(style.obDescription || "", s.infoValue)}
+      <td rowspan="4" colspan="6" style="${s.cell}text-align:center;vertical-align:middle;padding:8px;">${photoCellHtml}</td>
     </tr>
     <tr>
       ${td("ORDER QTY", s.infoLabel)}${td(style.orderQty || "", s.infoValue)}
@@ -520,7 +850,7 @@ function buildOperationBulletinReportHtml(style, operations, summary, mpBalance,
       ${td("TOTAL MANPOWER", s.infoLabel)}${td(money(totalManpower), s.infoValue)}
     </tr>`;
 
-  const colHeaderRow = `
+  const colHeaderRow = !includeHeadings ? "" : `
     <tr>
       ${td("SL NO", s.colHeader)}${td("OPERATION", s.colHeader)}${td("SECTION", s.colHeader)}
       ${td("MACHINE", s.colHeader)}${td("SAM", s.colHeader)}${td("100% CAP", s.colHeader)}
@@ -556,35 +886,33 @@ function buildOperationBulletinReportHtml(style, operations, summary, mpBalance,
     <tr>${td("UCL (PCS/HR)", s.infoLabel)}${td(money(balancing.ucl), s.infoValue)}</tr>
     <tr>${td("AVG CAPACITY (PCS/HR)", s.infoLabel)}${td(money(balancing.avgCapacity), s.infoValue)}</tr>` : "";
 
-  const maxCap = balancing.ucl || Math.max(1, ...balancing.rows.map((r) => r.capacityPerHr));
-  const chartRows = balancing.rows.map((r) => {
-    const pct = maxCap > 0 ? Math.max(2, Math.round((r.capacityPerHr / maxCap) * 100)) : 0;
-    const isBottleneck = balancing.bottleneck && r.id === balancing.bottleneck.id;
-    const barColor = isBottleneck ? "#C0504D" : "#F79646";
-    return `<tr>
-      ${td(r.name || `Op ${r.slNo}`, s.cell)}
-      ${td(money(r.capacityPerHr), s.numCell)}
-      <td colspan="${COLS - 2}" style="${s.cell}padding:3px 6px;"><div style="background:${barColor};height:14px;width:${pct}%;min-width:4px;"></div></td>
-    </tr>`;
-  }).join("");
+  // A real line graph (Operation Capacity zig-zag + UCL/LCL reference lines), styled like a factory
+  // "LINE BALANCING GRAPH". ExcelJS can only embed raster images (jpeg/png/gif), not native charts or
+  // inline <svg>, so when the caller has pre-rasterised the graph to a PNG data URI (see
+  // svgToPngDataUri, used only at Excel-export time) we embed that as an <img> — same mechanism as
+  // the Garment Sketch photo. For on-screen Preview / Print (no Excel round-trip involved) we embed
+  // the live <svg> directly, which renders crisper and needs no extra conversion step.
+  const graph = buildLineBalancingGraphSvg(balancing);
+  const chartMediaHtml = chartImageUri
+    ? `<img src="${chartImageUri}" alt="Line Balancing Graph" style="width:100%;max-width:${graph.width}px;height:auto;" />`
+    : graph.svg;
   const balancingChartBlock = balancing.rows.length > 0 ? `
-    <tr><td colspan="${COLS}" style="${s.sectionTitle}">LINE BALANCING CHART (Operation Capacity, pcs/hr — red bar = bottleneck)</td></tr>
-    <tr>${td("OPERATION", s.colHeader)}${td("CAP / HR", s.colHeader)}<td colspan="${COLS - 2}" style="${s.colHeader}">CHART</td></tr>
-    ${chartRows}` : "";
+    <tr><td colspan="${COLS}" style="${s.sectionTitle}">LINE BALANCING GRAPH (Operation Capacity, pcs/hr — blue = capacity, red = UCL, green = LCL)</td></tr>
+    <tr><td colspan="${COLS}" style="${s.cell}text-align:center;padding:6px;">${chartMediaHtml}</td></tr>` : "";
 
   return `<table style="border-collapse:collapse;">
     <tr><td colspan="${COLS}" style="${s.title}">OPERATION BULLETIN</td></tr>
-    <tr><td colspan="${COLS}" style="${s.bar}">STYLE DETAILS</td></tr>
+    <tr><td colspan="6" style="${s.bar}">STYLE DETAILS</td><td colspan="6" style="${s.bar}">GARMENT SKETCH / PICTURE</td></tr>
     ${infoRows}
     <tr><td colspan="${COLS}" style="height:6px;border:none;"></td></tr>
     ${colHeaderRow}
     ${dataRows}
     <tr><td colspan="${COLS}" style="height:10px;border:none;"></td></tr>
     <tr><td colspan="4" style="${s.sectionTitle}">SECTION-WISE SUMMARY</td><td colspan="${COLS - 4}" style="${s.sectionTitle}">MACHINE-WISE USAGE</td></tr>
-    <tr>
+    ${!includeHeadings ? "" : `<tr>
       ${td("SECTION", s.colHeader)}${td("COUNT", s.colHeader)}${td("SMV", s.colHeader)}${td("MANPOWER", s.colHeader)}
       ${td("MACHINE", s.colHeader)}${td("OP COUNT", s.colHeader)}<td colspan="${COLS - 6}" style="${s.colHeader}">MANPOWER</td>
-    </tr>
+    </tr>`}
     ${(() => {
       const secArr = OB_SECTIONS.filter((sec) => summary.sections[sec.key].count > 0);
       const maxRows = Math.max(secArr.length, (machineUsage || []).length, 1);
@@ -609,24 +937,34 @@ function buildOperationBulletinReportHtml(style, operations, summary, mpBalance,
     ${balancingBlock}
     <tr><td colspan="${COLS}" style="height:10px;border:none;"></td></tr>
     ${balancingChartBlock}
+    ${buildExtraPhotosBlockHtml(style, s, COLS, 100)}
   </table>`;
 }
 // Ramp-up Plan sheet — same day-wise plan as the in-app Ramp-up Plan section (manual entries for
 // early days, auto-filled at Line Target for the rest), styled to match the Operation Bulletin sheet.
-function buildRampUpReportHtml(style, rampUpPlan) {
+function buildRampUpReportHtml(style, rampUpPlan, rampUpExtras = {}, includeHeadings = true) {
   const s = obReportStyles();
   const td = (v, styleStr) => `<td style="${styleStr}">${escapeHtml(v)}</td>`;
-  const COLS = 5; // Day, Qty, Type, Cumulative, Chart
+  const COLS = 6; // Day, Qty, Type, Eff % (day), Cumulative, Chart
+  const { actualMp100 = 0, avgEfficiencyPct = 0, noOfLines = 0, perLineTarget = 0, totalLineTarget = 0, totalMp = 0, sewingSam = 0, shiftMinutes = SHIFT_MINUTES } = rampUpExtras;
+  // Per-day production efficiency — day capacity @ 100% = (Total Manpower × Working Minutes) ÷ SAM;
+  // that day's Eff% = day qty ÷ that capacity × 100. Same formula as the in-app Ramp-up Plan list.
+  const dayEffPct = (qty) => {
+    const capacity100 = totalMp > 0 && sewingSam > 0 ? (totalMp * shiftMinutes) / sewingSam : 0;
+    return capacity100 > 0 ? (num(qty) / capacity100) * 100 : 0;
+  };
   let cumulative = 0;
   const maxQty = Math.max(1, ...rampUpPlan.rows.map((r) => r.qty));
   const dayRows = rampUpPlan.rows.map((r) => {
     cumulative += r.qty;
     const pct = Math.max(2, Math.round((r.qty / maxQty) * 100));
     const barColor = r.manual ? "#F79646" : "#4F81BD";
+    const eff = dayEffPct(r.qty);
     return `<tr>
       ${td(`Day ${r.day}`, s.cell)}
       ${td(money(r.qty), s.numCell)}
       ${td(r.manual ? "Manual" : "Auto", s.numCell)}
+      ${td(eff ? `${money(eff)}%` : "", s.numCell)}
       ${td(money(cumulative), s.numCell)}
       <td style="${s.cell}padding:3px 6px;"><div style="background:${barColor};height:14px;width:${pct}%;min-width:4px;"></div></td>
     </tr>`;
@@ -637,21 +975,89 @@ function buildRampUpReportHtml(style, rampUpPlan) {
     <tr>
       ${td("STYLE NO", s.infoLabel)}${td(style.styleNo || "", s.infoValue)}
       ${td("ORDER QTY", s.infoLabel)}${td(style.orderQty || "", s.infoValue)}
-      ${td("LINE TARGET / DAY", s.infoLabel)}
+      ${td("TOTAL LINE TARGET / DAY", s.infoLabel)}
     </tr>
     <tr>
       ${td("QTY ENTERED (MANUAL)", s.infoLabel)}${td(money(rampUpPlan.manualSum), s.infoValue)}
       ${td("REMAINING QTY", s.infoLabel)}${td(money(rampUpPlan.remaining), s.infoValue)}
-      ${td(style.obTargetQtyPerDay || "", s.infoValue)}
+      ${td(totalLineTarget ? money(totalLineTarget) : "", s.infoValue)}
     </tr>
     <tr>
-      ${td("AUTO DAYS NEEDED", s.infoLabel)}${td(rampUpPlan.autoDaysCount, s.infoValue)}
-      ${td("TOTAL DAYS TO COMPLETE", s.infoLabel)}${td(rampUpPlan.totalDays, s.infoValue)}
+      ${td("DAYS NEEDED (EXACT)", s.infoLabel)}${td(rampUpPlan.autoDaysExact.toFixed(1), s.infoValue)}
+      ${td("LEAD TIME — TOTAL DAYS", s.infoLabel)}${td(rampUpPlan.totalDaysExact.toFixed(1), s.infoValue)}
       ${td("", s.infoValue)}
     </tr>
+    <tr><td colspan="${COLS}" style="${s.bar}">MANPOWER &amp; LINE PLANNING</td></tr>
+    <tr>
+      ${td("TOTAL MANPOWER (CUT+SEW+QC+PACK)", s.infoLabel)}${td(money(actualMp100), s.infoValue)}
+      ${td("AVG EFFICIENCY %", s.infoLabel)}${td(avgEfficiencyPct ? `${money(avgEfficiencyPct)}%` : "", s.infoValue)}
+    </tr>
+    <tr>
+      ${td("NO. OF LINES", s.infoLabel)}${td(noOfLines || "", s.infoValue)}
+      ${td("TARGET QTY / DAY / LINE", s.infoLabel)}${td(perLineTarget ? money(perLineTarget) : "", s.infoValue)}
+    </tr>
     <tr><td colspan="${COLS}" style="height:6px;border:none;"></td></tr>
-    <tr>${td("DAY", s.colHeader)}${td("QTY", s.colHeader)}${td("TYPE", s.colHeader)}${td("CUMULATIVE QTY", s.colHeader)}${td("CHART (orange = manual, blue = auto)", s.colHeader)}</tr>
+    ${!includeHeadings ? "" : `<tr>${td("DAY", s.colHeader)}${td("QTY", s.colHeader)}${td("TYPE", s.colHeader)}${td("EFF %", s.colHeader)}${td("CUMULATIVE QTY", s.colHeader)}${td("CHART (orange = manual, blue = auto)", s.colHeader)}</tr>`}
     ${dayRows || `<tr><td colspan="${COLS}" style="${s.cell}text-align:center;">No ramp-up days entered yet.</td></tr>`}
+  </table>`;
+}
+// Product Costing Details sheet — mirrors a factory's Product Costing card (Buyer/Style/Description
+// block, Total SMV/Order Eff/Lead Time/Planned Line/Compiled By/Dates block, and a Plan Target /
+// Target 100% / Line Balance footer row) so the exported workbook has a costing summary page too.
+function buildProductCostingReportHtml(style, summary, balancing, rampUpPlan, achievableQtyAtActualMp, includeHeadings = true) {
+  const s = obReportStyles();
+  const td = (v, styleStr) => `<td style="${styleStr}">${escapeHtml(v)}</td>`;
+  const COLS = 6;
+  const orderEffPct = style.targetEfficiencyPct ? `${style.targetEfficiencyPct}%` : "";
+  const leadTime = style.obLeadTime || (rampUpPlan.totalDaysExact ? rampUpPlan.totalDaysExact.toFixed(1) : "");
+  const target100 = Math.round(achievableQtyAtActualMp || 0);
+  const planTarget = num(style.obTargetQtyPerDay);
+  const planTargetPct = target100 > 0 ? (planTarget / target100) * 100 : 0;
+  const lineBalancePct = balancing.ucl > 0 ? (balancing.lcl / balancing.ucl) * 100 : 0;
+  return `<table style="border-collapse:collapse;">
+    <tr><td colspan="${COLS}" style="${s.title}">PRODUCT COSTING DETAILS</td></tr>
+    ${!includeHeadings ? "" : `<tr>
+      <td colspan="2" style="${s.bar}">PRODUCT DETAILS</td>
+      <td colspan="2" style="${s.bar}">RESULTS</td>
+      <td colspan="2" style="${s.bar}">GARMENT SKETCH / PICTURE</td>
+    </tr>`}
+    <tr>
+      ${td("BUYER", s.infoLabel)}${td(style.buyer || "", s.infoValue)}
+      ${td("TOTAL SMV (SEW TO PACK)", s.infoLabel)}${td(money(summary.sewToPackSmv), s.infoValue)}
+      <td rowspan="6" colspan="2" style="${s.cell}text-align:center;vertical-align:middle;padding:8px;">${style.photoRef ? `<img src="${style.photoRef}" alt="Garment Sketch" style="max-width:170px;max-height:170px;width:auto;height:auto;object-fit:contain;" />` : `<span style="color:#bbb;font-size:11px;">No photo uploaded</span>`}</td>
+    </tr>
+    <tr>
+      ${td("STYLE NO", s.infoLabel)}${td(style.styleNo || "", s.infoValue)}
+      ${td("ORDER EFF %", s.infoLabel)}${td(orderEffPct, s.infoValue)}
+    </tr>
+    <tr>
+      ${td("DESCRIPTION", s.infoLabel)}${td(style.obDescription || "", s.infoValue)}
+      ${td("LEAD TIME (DAYS)", s.infoLabel)}${td(leadTime, s.infoValue)}
+    </tr>
+    <tr>
+      ${td("ORDER QTY", s.infoLabel)}${td(style.orderQty || "", s.infoValue)}
+      ${td("PLANNED LINE", s.infoLabel)}${td(style.obPlannedLines || "", s.infoValue)}
+    </tr>
+    <tr>
+      ${td("FACTORY", s.infoLabel)}${td(style.obFactory || "", s.infoValue)}
+      ${td("COMPILED BY", s.infoLabel)}${td(style.obCompiledBy || "", s.infoValue)}
+    </tr>
+    <tr>
+      ${td("COUNTRY", s.infoLabel)}${td(style.obCountry || "", s.infoValue)}
+      ${td("COMPILED DATE", s.infoLabel)}${td(style.obCompiledDate || "", s.infoValue)}
+    </tr>
+    <tr>
+      ${td("", s.infoValue)}${td("", s.infoValue)}
+      ${td("LAST CHANGE DATE", s.infoLabel)}${td(style.obLastChangeDate || "", s.infoValue)}
+      ${td("", s.infoValue)}${td("", s.infoValue)}
+    </tr>
+    <tr><td colspan="${COLS}" style="height:6px;border:none;"></td></tr>
+    ${!includeHeadings ? "" : `<tr>${td("PLAN TARGET", s.colHeader)}${td("", s.colHeader)}${td("", s.colHeader)}${td("TARGET 100%", s.colHeader)}${td("LINE BALANCE", s.colHeader)}${td("", s.colHeader)}</tr>`}
+    <tr>
+      ${td(money(planTarget), s.numCell)}${td(`${money(planTargetPct)}%`, s.numCell)}${td("", s.numCell)}
+      ${td(money(target100), s.numCell)}${td(`${money(lineBalancePct)}%`, s.numCell)}${td("", s.numCell)}
+    </tr>
+    ${buildExtraPhotosBlockHtml(style, s, COLS, 90)}
   </table>`;
 }
 function Stat({ label, value, accent, sub, big }) {
@@ -766,6 +1172,58 @@ function PhotoRefUpload({ value, onChange, label = "Photo Reference" }) {
           <Upload size={14} /> Upload Photo Reference
         </button>
       )}
+    </div>
+  );
+}
+
+// Multi-photo upload + preview grid — used alongside PhotoRefUpload so a style can carry extra
+// reference photos (besides the one main Garment Sketch / Photo) that also flow into the
+// Product Costing and Operation Bulletin Excel sheets' GARMENT SKETCH / PICTURE block.
+function PhotoGalleryUpload({ value, onChange, label = "Extra Photos" }) {
+  const inputRef = useRef(null);
+  const photos = Array.isArray(value) ? value : [];
+  const handleFiles = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((dataUris) => onChange([...photos, ...dataUris]));
+    e.target.value = "";
+  };
+  const removeAt = (idx) => onChange(photos.filter((_, i) => i !== idx));
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">{label}</p>
+      <input ref={inputRef} type="file" accept="image/*" multiple onChange={handleFiles} className="hidden" />
+      <div className="flex flex-wrap items-center gap-2">
+        {photos.map((uri, idx) => (
+          <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 shrink-0">
+            <img src={uri} alt={`Extra photo ${idx + 1}`} className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => removeAt(idx)}
+              className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5 active:bg-black/80"
+              title="Remove photo"
+            >
+              <X size={11} />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="flex items-center justify-center gap-1 w-16 h-16 rounded-xl border-2 border-dashed border-stone-300 text-stone-500 text-[10px] font-bold active:bg-stone-50 shrink-0"
+        >
+          <Upload size={13} /> Add
+        </button>
+      </div>
     </div>
   );
 }
@@ -925,24 +1383,37 @@ function useObGroupPhotoLibrary() {
 // ---------------- Saved OB — Buyer-wise library, with Print / Share ----------------
 // Groups every style that already has OB operations saved, by Buyer, so a saved Operation
 // Bulletin can be found and handed out (printed / shared) without hunting through the Style switcher.
-function SavedObScreen({ styles }) {
+function SavedObScreen({ styles, onEditStyle }) {
   const [openBuyer, setOpenBuyer] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [shareMsg, setShareMsg] = useState("");
+  const [search, setSearch] = useState("");
 
   const savedStyles = useMemo(
     () => (styles || []).filter((s) => (s.obOperations || []).some((op) => !op.isHeading)),
     [styles]
   );
+  // Buyer-wise search: matches on Buyer name, Style No, or Description, case-insensitive. While
+  // searching, groups are auto-expanded so matches aren't hidden behind a collapsed buyer.
+  const searchedStyles = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return savedStyles;
+    return savedStyles.filter((s) => {
+      const buyer = (s.buyer || "").toLowerCase();
+      const styleNo = (s.styleNo || "").toLowerCase();
+      const desc = (s.obDescription || "").toLowerCase();
+      return buyer.includes(q) || styleNo.includes(q) || desc.includes(q);
+    });
+  }, [savedStyles, search]);
   const byBuyer = useMemo(() => {
     const map = {};
-    savedStyles.forEach((s) => {
+    searchedStyles.forEach((s) => {
       const b = (s.buyer || "").trim() || "No Buyer";
       if (!map[b]) map[b] = [];
       map[b].push(s);
     });
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [savedStyles]);
+  }, [searchedStyles]);
 
   const selected = savedStyles.find((s) => s.id === selectedId) || null;
   const summary = useMemo(() => computeOBSummary(selected?.obOperations), [selected]);
@@ -1002,6 +1473,22 @@ function SavedObScreen({ styles }) {
 
       <div className="rounded-2xl border border-stone-200 bg-white p-3">
         <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wide mb-2">Saved OB — Buyer-wise</p>
+        <div className="flex items-center rounded-xl border border-stone-200 bg-white mb-2.5 focus-within:border-amber-500">
+          <Search size={14} className="ml-3 text-stone-400 shrink-0" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by Buyer, Style No, or Description..."
+            className="w-full px-2 py-2.5 text-xs outline-none bg-transparent placeholder:text-stone-300"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="mr-3 text-stone-300 active:text-red-600 shrink-0"><X size={14} /></button>
+          )}
+        </div>
+        {byBuyer.length === 0 ? (
+          <p className="text-xs text-stone-400 py-2 text-center">No saved OB matches "{search}".</p>
+        ) : (
         <div className="space-y-1.5">
           {byBuyer.map(([buyer, list]) => (
             <div key={buyer} className="rounded-xl border border-stone-200 overflow-hidden">
@@ -1012,34 +1499,47 @@ function SavedObScreen({ styles }) {
                 <span className="text-xs font-extrabold text-stone-700">{buyer}</span>
                 <span className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-stone-400">{list.length} style{list.length > 1 ? "s" : ""}</span>
-                  <ChevronDown size={14} className={`text-stone-400 transition-transform ${openBuyer === buyer ? "" : "-rotate-90"}`} />
+                  <ChevronDown size={14} className={`text-stone-400 transition-transform ${(openBuyer === buyer || (search.trim() && byBuyer.length <= 3)) ? "" : "-rotate-90"}`} />
                 </span>
               </button>
-              {openBuyer === buyer && (
+              {(openBuyer === buyer || (search.trim() && byBuyer.length <= 3)) && (
                 <div className="divide-y divide-stone-100">
                   {list.map((s) => (
-                    <button
+                    <div
                       key={s.id}
-                      onClick={() => setSelectedId(s.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 text-left ${selectedId === s.id ? "bg-amber-50" : "bg-white"}`}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 text-left gap-2 ${selectedId === s.id ? "bg-amber-50" : "bg-white"}`}
                     >
-                      <span className="min-w-0">
+                      <button onClick={() => setSelectedId(s.id)} className="min-w-0 flex-1 text-left">
                         <span className="block text-xs font-bold text-stone-800 truncate">{s.styleNo || "Untitled"}</span>
                         <span className="block text-[10px] text-stone-400">{(s.obOperations || []).filter((o) => !o.isHeading).length} operations · {s.orderQty || 0} pcs</span>
-                      </span>
+                      </button>
                       {selectedId === s.id && <Check size={14} className="text-amber-600 shrink-0" />}
-                    </button>
+                      {onEditStyle && (
+                        <button
+                          onClick={() => onEditStyle(s.id)}
+                          className="flex items-center gap-1 rounded-lg border border-amber-300 text-amber-700 px-2 py-1 text-[10px] font-bold shrink-0 active:bg-amber-100"
+                        >
+                          <Pencil size={11} /> Edit
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {selected && (
         <div className="rounded-2xl border border-stone-200 bg-white p-4">
           <div className="flex flex-wrap items-center gap-2 mb-3">
+            {onEditStyle && (
+              <button onClick={() => onEditStyle(selected.id)} className="flex items-center gap-1.5 rounded-xl bg-amber-500 text-stone-900 px-3.5 py-2 text-xs font-bold active:bg-amber-400">
+                <Pencil size={14} /> Edit
+              </button>
+            )}
             <button onClick={handlePrint} className="flex items-center gap-1.5 rounded-xl bg-stone-800 text-white px-3.5 py-2 text-xs font-bold active:bg-stone-900">
               <Printer size={14} /> Print
             </button>
@@ -1538,17 +2038,65 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
   };
   const handleObSave = () => {
     // Data auto-saves on every edit already — this just gives an explicit confirmation.
-    onUpdateStyle({ ...style });
+    // Also stamps Compiled Date (once, first save) and Last Change Date (every save) for the
+    // Product Costing sheet.
+    const today = new Date().toLocaleDateString("en-GB");
+    onUpdateStyle({ ...style, obCompiledDate: style.obCompiledDate || today, obLastChangeDate: today });
     setSavedMsg("Saved ✓");
     setTimeout(() => setSavedMsg(""), 2000);
   };
-  const handleObExportExcel = () => {
-    const obHtml = buildOperationBulletinReportHtml(style, operations, summary, mpBalance, balancing, machineUsage, helperSummary);
-    const rampHtml = buildRampUpReportHtml(style, rampUpPlan);
-    downloadHtmlAsExcel(`${style.styleNo || "style"}_operation_bulletin.xls`, [
-      { name: "Operation Bulletin", html: obHtml },
-      { name: "Ramp-up Plan", html: rampHtml },
-    ]);
+  // Builds only the sheets ticked in exportSheetSel — shared by Export Excel, Preview, and Print so
+  // all three always show exactly the same content. chartImageUri is only passed at Excel-export
+  // time (a pre-rasterised PNG of the Line Balancing Graph); Preview/Print omit it and get the live
+  // <svg> embedded straight into the Operation Bulletin sheet's HTML instead.
+  const buildSelectedObSheets = (chartImageUri = "") => {
+    const rampUpExtras = {
+      actualMp100: rampUpTotalMp,
+      avgEfficiencyPct: rampUpAvgEffPct,
+      noOfLines,
+      perLineTarget: rampPerLineTarget,
+      totalLineTarget: rampTotalTarget,
+      totalMp: rampUpTotalMp,
+      sewingSam: rampUpSam,
+      shiftMinutes,
+    };
+    const sheets = [];
+    if (exportSheetSel.ob) {
+      sheets.push({ name: "Operation Bulletin", html: buildOperationBulletinReportHtml(style, operations, summary, mpBalance, balancing, machineUsage, helperSummary, includeHeadingsInExport, chartImageUri) });
+    }
+    if (exportSheetSel.rampup) {
+      sheets.push({ name: "Ramp-up Plan", html: buildRampUpReportHtml(style, rampUpPlan, rampUpExtras, includeHeadingsInExport) });
+    }
+    if (exportSheetSel.costing) {
+      sheets.push({ name: "Product Costing", html: buildProductCostingReportHtml(style, summary, balancing, rampUpPlan, achievableQtyAtActualMp, includeHeadingsInExport) });
+    }
+    return sheets;
+  };
+  const [obExporting, setObExporting] = useState(false);
+  const handleObExportExcel = async () => {
+    setObExporting(true);
+    try {
+      // Rasterise the Line Balancing Graph to PNG first — ExcelJS can only embed jpeg/png/gif
+      // pictures, not the live <svg> that Preview/Print use directly.
+      const graph = buildLineBalancingGraphSvg(balancing);
+      const chartImageUri = graph.svg ? await svgToPngDataUri(graph.svg, graph.width, graph.height) : "";
+      const sheets = buildSelectedObSheets(chartImageUri);
+      if (sheets.length === 0) return;
+      await downloadHtmlAsExcel(`${style.styleNo || "style"}_operation_bulletin.xlsx`, sheets);
+    } finally {
+      setObExporting(false);
+    }
+  };
+  const handleObPrint = () => {
+    const sheets = buildSelectedObSheets();
+    if (sheets.length === 0) return;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const body = sheets.map((sh) => `<h2 style="font-family:Calibri,Arial,sans-serif;">${escapeHtml(sh.name)}</h2><table style="border-collapse:collapse;margin-bottom:24px;">${sh.html.replace(/^<table[^>]*>|<\/table>$/g, "")}</table>`).join("");
+    win.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(style.styleNo || "Operation Bulletin")}</title></head><body>${body}</body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
   };
   // Sample template showing how Heading rows + Sl No sequence should be laid out in Excel —
   // Import reads rows top-to-bottom exactly as they appear in the sheet, so whatever order the
@@ -1686,12 +2234,16 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
   // Total manpower allocated across Sewing operations in this OB (sum of each op's Manpower
   // field) — the fallback source for Actual Sewing Manpower when that field is left blank.
   const totalAllocatedSewingMp = useMemo(
-    () => operations.filter((op) => op.section === "sewing" && !op.isHeading).reduce((a, op) => a + num(op.manpower || 1), 0),
+    () => operations.filter((op) => op.section === "sewing" && !op.isHeading).reduce((a, op) => a + allocatedMpOf(op), 0),
     [operations]
   );
   const actualSewingMpManual = style?.obActualSewingMp !== undefined && style?.obActualSewingMp !== "";
   const actualSewingMp = actualSewingMpManual ? num(style.obActualSewingMp) : totalAllocatedSewingMp;
   const mpFulfilledPct = suggestedMp > 0 ? (actualSewingMp / suggestedMp) * 100 : 0;
+  // Total manpower across the WHOLE OB — Cutting + Sewing + QC + Packing combined (every non-heading
+  // operation row), not Sewing alone. This feeds the Ramp-up Plan section and CM/Machine, since a
+  // day's real achievable output depends on every department's headcount, not just sewing operators.
+  const totalObManpower = operations.filter((op) => !op.isHeading).reduce((a, op) => a + allocatedMpOf(op), 0);
   // Reverse calc: with the actual Sewing manpower (entered above, or the Total Allocated Manpower
   // fallback), what qty/day is achievable at 100% efficiency — base line-planning off the real
   // headcount instead of the customer's target.
@@ -1699,14 +2251,88 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
     if (actualSewingMp <= 0 || sewingSam <= 0) return 0;
     return (actualSewingMp * shiftMinutes) / sewingSam;
   }, [actualSewingMp, sewingSam, shiftMinutes]);
+  // No. of Lines the order is planned across, and the resulting per-line day target — feeds both
+  // the Ramp-up Plan section and the Product Costing sheet's "Planned Line" field.
+  const noOfLines = num(style.obPlannedLines);
+  const linePerDayTarget = noOfLines > 0 ? num(style.obTargetQtyPerDay) / noOfLines : 0;
+  // Ramp-up Plan uses its own Per-Line Target Qty/Day (obRampPerLineTarget) so the planner can key
+  // in the line's real takt (e.g. 1200 pcs/line/day) directly instead of back-deriving it from the
+  // Customer Target Qty/Day above. Falls back to the derived linePerDayTarget when left blank, so
+  // existing styles keep behaving exactly as before. Total daily capacity across every line
+  // (perLineTarget × noOfLines) is what actually drives the ramp-up day-count / lead-time maths —
+  // this is what fixes the lead-time so it matches the per-line plan (e.g. 1200 × 2 lines =
+  // 2400/day; 44400 remaining ÷ 2400 = 18.5 days + 12 ramp-up days = 30.5 days lead time).
+  const rampPerLineTarget = num(style.obRampPerLineTarget) > 0 ? num(style.obRampPerLineTarget) : linePerDayTarget;
+  const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(style.obTargetQtyPerDay);
+  // The Operation Bulletin's manpower entries (totalObManpower) describe ONE line's headcount.
+  // With 2+ lines running the same operations side by side, the manpower actually on the floor is
+  // that many times bigger — so Ramp-up's efficiency maths must multiply totalObManpower by
+  // No. of Lines too, or Eff% comes out wrong (target qty scales with lines, manpower didn't).
+  const rampUpTotalMp = totalObManpower * (noOfLines > 0 ? noOfLines : 1);
   const rampUpPlan = useMemo(
-    () => computeRampUpPlan(style?.orderQty, style?.obTargetQtyPerDay, style?.obRampUpDays),
-    [style?.orderQty, style?.obTargetQtyPerDay, style?.obRampUpDays]
+    () => computeRampUpPlan(style?.orderQty, rampTotalTarget, style?.obRampUpDays, noOfLines),
+    [style?.orderQty, rampTotalTarget, style?.obRampUpDays, noOfLines]
   );
+  // Combined SAM for Ramp-up efficiency calc — Sewing + QC + Packing (summary.sewToPackSmv, same
+  // figure as the "Sewing + QC + Packing" total on the Section-wise Usage Summary card), not
+  // Sewing SAM alone, since Ramp-up planning is against the full garment work content.
+  const rampUpSam = summary.sewToPackSmv;
   const setRampUpDays = (rows) => onUpdateStyle({ ...style, obRampUpDays: rows });
   const addRampUpDay = () => setRampUpDays([...(style.obRampUpDays || []), { id: uid(), qty: "" }]);
   const updateRampUpDay = (id, qty) => setRampUpDays((style.obRampUpDays || []).map((r) => (r.id === id ? { ...r, qty } : r)));
   const removeRampUpDay = (id) => setRampUpDays((style.obRampUpDays || []).filter((r) => r.id !== id));
+  // Average Eff % across sewing operations (Plan Cap ÷ Manpower Allocated) — feeds the CM calculation.
+  const avgSewingEffPct = useMemo(() => {
+    // mpBalance now spans every section (Cutting/Sewing/QC/Packing) so its columns can show up
+    // on those rows too — filter back to Sewing-only here since this figure specifically feeds the
+    // CM calculation, a sewing-line figure.
+    const rows = (mpBalance.rows || []).filter((r) => r.section === "sewing");
+    if (rows.length === 0) return 0;
+    return rows.reduce((a, r) => a + (r.effPct || 0), 0) / rows.length;
+  }, [mpBalance]);
+  // Per-day production efficiency — day capacity @ 100% = (Total Manpower × Working Minutes) ÷ SAM;
+  // that day's Eff% = day qty ÷ that capacity × 100 (same as qty × SAM ÷ (Manpower × Minutes) × 100).
+  const rampDayEffPct = useMemo(() => {
+    if (rampUpTotalMp <= 0 || rampUpSam <= 0) return () => 0;
+    const capacity100 = (rampUpTotalMp * shiftMinutes) / rampUpSam;
+    return (qty) => (capacity100 > 0 ? (num(qty) / capacity100) * 100 : 0);
+  }, [rampUpTotalMp, rampUpSam, shiftMinutes]);
+  // Ramp-up "Avg Efficiency %" — average of every day's production efficiency (above), across the
+  // WHOLE ramp-up plan (manual entries + auto-filled days) — the total-days average, not a single
+  // ratio-of-totals figure.
+  const rampUpAvgEffPct = useMemo(() => {
+    if (rampUpPlan.rows.length === 0) return 0;
+    const sum = rampUpPlan.rows.reduce((a, r) => a + rampDayEffPct(r.qty), 0);
+    return sum / rampUpPlan.rows.length;
+  }, [rampUpPlan.rows, rampDayEffPct]);
+  // CM (Cost of Making) calculation — CM/Minute (CPM) is a manual factory input. Formula:
+  // CM = (Sew-to-Pack SMV ÷ Avg Efficiency %) × CPM — per piece; × 12 for per dozen. Avg Efficiency
+  // uses a dedicated manual entry (obCmAvgEffPct) when set, else falls back to the Avg Efficiency %
+  // already computed on the Ramp-up sheet from the sewing operations. Currency and Per Pcs / Per Dzn
+  // basis are both selectable per style; CM Realization % is now a direct manual entry (factory's
+  // own realization figure) instead of being force-derived from Plan Eff%.
+  const cmCurrency = style.obCmCurrency || "USD";
+  const cmSymbol = cmCurrencySymbol(cmCurrency);
+  const cmBasis = style.obCmBasis === "pcs" ? "pcs" : "dzn";
+  const cmPerMinute = num(style.obCmPerMinute);
+  const cmAvgEffPct = num(style.obCmAvgEffPct) > 0 ? num(style.obCmAvgEffPct) : (avgSewingEffPct || 100);
+  const cmEffFactor = cmAvgEffPct > 0 ? cmAvgEffPct / 100 : 1;
+  const cmValuePerPc = cmPerMinute > 0 && cmEffFactor > 0 ? (summary.sewToPackSmv / cmEffFactor) * cmPerMinute : 0;
+  const cmValuePerDzn = cmValuePerPc * 12;
+  const cmPerDzn = cmBasis === "pcs" ? cmValuePerPc : cmValuePerDzn;
+  const cmPerMachine = totalObManpower > 0 ? cmPerDzn / totalObManpower : 0;
+  const [includeHeadingsInExport, setIncludeHeadingsInExport] = useState(true);
+  // Which report sheets go into the Excel export — planner can untick Ramp-up or Product Costing
+  // if this style doesn't need them, instead of always getting all 3 sheets bundled together.
+  const [exportSheetSel, setExportSheetSel] = useState({ ob: true, rampup: true, costing: true });
+  const toggleExportSheet = (key) => setExportSheetSel((prev) => ({ ...prev, [key]: !prev[key] }));
+  const [showExportPreview, setShowExportPreview] = useState(false);
+  useEffect(() => {
+    if (!showExportPreview) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, [showExportPreview]);
 
   const syncToStyleSMV = () => {
     const nextDepartments = (style.departments || blankDepartments()).map((d) => {
@@ -1827,7 +2453,7 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
           {masterTemplateMsg && <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600"><Check size={13} /> {masterTemplateMsg}</span>}
         </div>
       ) : obTab === "savedob" ? (
-        <SavedObScreen styles={styles} />
+        <SavedObScreen styles={styles} onEditStyle={(id) => { setStyleId(id); setObTab("target"); }} />
       ) : obTab === "subentries" ? null : (
         <div className="rounded-2xl border border-stone-200 bg-white p-4 space-y-3">
           {styles.length > 0 ? (
@@ -1853,7 +2479,28 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
                 <Field label="Size" value={style.obSize || ""} onChange={(v) => onUpdateStyle({ ...style, obSize: v })} type="text" placeholder="e.g. S-XXL" />
               </div>
               <Field label="Style Description" value={style.obDescription || ""} onChange={(v) => onUpdateStyle({ ...style, obDescription: v })} type="text" placeholder="e.g. C Neck Long Sleeve" />
+              <PhotoRefUpload value={style.photoRef || ""} onChange={(v) => onUpdateStyle({ ...style, photoRef: v })} label="Garment Sketch / Photo (Product Costing sheet)" />
+              <PhotoGalleryUpload value={style.extraPhotoRefs || []} onChange={(v) => onUpdateStyle({ ...style, extraPhotoRefs: v })} label="Extra Photos (Product Costing & Operation Bulletin sheet-க்கும் போகும்)" />
 
+              <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-3 space-y-2">
+                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-wide">Product Costing Details (Excel export-ல Product Costing sheet-க்கு)</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Field label="Factory" value={style.obFactory || ""} onChange={(v) => onUpdateStyle({ ...style, obFactory: v })} type="text" placeholder="e.g. EMBEE GROUP" />
+                  <Field label="Country" value={style.obCountry || ""} onChange={(v) => onUpdateStyle({ ...style, obCountry: v })} type="text" placeholder="e.g. EGYPT" />
+                </div>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <Field label="Lead Time (days)" value={style.obLeadTime || ""} onChange={(v) => onUpdateStyle({ ...style, obLeadTime: v })} />
+                  <Field label="Planned Line" value={style.obPlannedLines || ""} onChange={(v) => onUpdateStyle({ ...style, obPlannedLines: v })} />
+                  <Field label="Compiled By" value={style.obCompiledBy || ""} onChange={(v) => onUpdateStyle({ ...style, obCompiledBy: v })} type="text" placeholder="e.g. DINESH" />
+                </div>
+                {(style.obCompiledDate || style.obLastChangeDate) && (
+                  <p className="text-[10px] text-stone-400">
+                    {style.obCompiledDate ? `Compiled: ${style.obCompiledDate}` : ""}{style.obCompiledDate && style.obLastChangeDate ? " · " : ""}{style.obLastChangeDate ? `Last Change: ${style.obLastChangeDate}` : ""}
+                  </p>
+                )}
+              </div>
+
+              {obTab === "ops" && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-3 space-y-2">
                 <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">OB Template Library</p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1875,6 +2522,7 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
                 </button>
                 <p className="text-[10px] text-stone-400">ஒரு Style Description-க்கு (ex: "C Neck Long Sleeve") operations fill பண்ணி/Excel Import பண்ணி — "Save Current Operations as Template" தட்டுங்க. அடுத்த முறை அதே மாதிரி style வந்தா, இங்க Select பண்ணி Load தட்டுங்க — Operation Bulletin முழுசா auto-ஆ வந்துடும், தேவையான மாற்றம் மட்டும் edit பண்ணி வேலையை சீக்கிரம் முடிக்கலாம்.</p>
               </div>
+              )}
             </>
           )}
         </div>
@@ -1885,9 +2533,33 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
           <button onClick={handleObSave} className="flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white px-3.5 py-2 text-xs font-bold active:bg-emerald-700">
             <Save size={14} /> Save
           </button>
-          <button onClick={handleObExportExcel} className="flex items-center gap-1.5 rounded-xl border border-stone-200 text-stone-600 px-3.5 py-2 text-xs font-bold">
-            <FileSpreadsheet size={14} /> Export Excel
+          <button onClick={handleObExportExcel} disabled={obExporting} className="flex items-center gap-1.5 rounded-xl border border-stone-200 text-stone-600 px-3.5 py-2 text-xs font-bold disabled:opacity-50">
+            <FileSpreadsheet size={14} /> {obExporting ? "Preparing..." : "Export Excel"}
           </button>
+          <button onClick={() => setShowExportPreview(true)} className="flex items-center gap-1.5 rounded-xl border border-stone-200 text-stone-600 px-3.5 py-2 text-xs font-bold">
+            <Eye size={14} /> Preview
+          </button>
+          <button onClick={handleObPrint} className="flex items-center gap-1.5 rounded-xl border border-stone-200 text-stone-600 px-3.5 py-2 text-xs font-bold">
+            <Printer size={14} /> Print
+          </button>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-500 select-none">
+              <input type="checkbox" checked={exportSheetSel.ob} onChange={() => toggleExportSheet("ob")} className="w-3.5 h-3.5 accent-amber-500" />
+              Operation Bulletin
+            </label>
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-500 select-none">
+              <input type="checkbox" checked={exportSheetSel.rampup} onChange={() => toggleExportSheet("rampup")} className="w-3.5 h-3.5 accent-amber-500" />
+              Ramp-up Plan
+            </label>
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-500 select-none">
+              <input type="checkbox" checked={exportSheetSel.costing} onChange={() => toggleExportSheet("costing")} className="w-3.5 h-3.5 accent-amber-500" />
+              Product Costing
+            </label>
+          </div>
+          <label className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-500 select-none">
+            <input type="checkbox" checked={includeHeadingsInExport} onChange={(e) => setIncludeHeadingsInExport(e.target.checked)} className="w-3.5 h-3.5 accent-amber-500" />
+            Heading வேணுமா (column headings-ஓட Excel export)
+          </label>
           <button onClick={() => obFileInputRef.current?.click()} className="flex items-center gap-1.5 rounded-xl border border-stone-200 text-stone-600 px-3.5 py-2 text-xs font-bold">
             <Upload size={14} /> Import Excel
           </button>
@@ -1896,6 +2568,71 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
             <Download size={14} /> Download Template
           </button>
           {savedMsg && <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 ml-auto"><Check size={13} /> {savedMsg}</span>}
+        </div>
+      )}
+      {showExportPreview && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+          <div className="bg-white w-full sm:max-w-3xl sm:rounded-2xl h-[92vh] [@supports(height:100dvh)]:h-[92dvh] sm:h-[85vh] flex flex-col overflow-hidden overscroll-contain">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 shrink-0">
+              <h3 className="text-sm font-bold text-stone-700">Export Preview {includeHeadingsInExport ? "" : "(no headings)"}</h3>
+              <button onClick={() => setShowExportPreview(false)} className="text-stone-400 active:text-stone-700"><X size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-6 bg-stone-50" style={{ WebkitOverflowScrolling: "touch" }}>
+              {buildSelectedObSheets().length === 0 ? (
+                <p className="text-xs text-stone-400 text-center py-8">Sheet-ஐ தேர்ந்தெடுங்க (Operation Bulletin / Ramp-up Plan / Product Costing) — preview பண்ண குறைந்தது ஒன்று வேணும்.</p>
+              ) : (
+                buildSelectedObSheets().map((sh) => (
+                  <div key={sh.name} className="bg-white rounded-xl border border-stone-200 overflow-x-auto">
+                    <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide px-3 pt-3">{sh.name}</h4>
+                    {sh.name === "Operation Bulletin" && (
+                      <table className="w-full text-[11px] border-collapse mt-2">
+                        <thead>
+                          <tr className="bg-stone-100 text-stone-500 text-left">
+                            <th className="px-2 py-1.5 border border-stone-200">Sl No</th>
+                            <th className="px-2 py-1.5 border border-stone-200">Operation</th>
+                            <th className="px-2 py-1.5 border border-stone-200">Section</th>
+                            <th className="px-2 py-1.5 border border-stone-200">Machine</th>
+                            <th className="px-2 py-1.5 border border-stone-200">SAM</th>
+                            <th className="px-2 py-1.5 border border-stone-200">Manpower</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {operations.map((op) =>
+                            op.isHeading ? (
+                              <tr key={op.id}>
+                                <td colSpan={6} className="px-2 py-1.5 border border-stone-200 bg-amber-50 font-bold text-amber-700">{op.name}</td>
+                              </tr>
+                            ) : (
+                              <tr key={op.id}>
+                                <td className="px-2 py-1 border border-stone-200 tabular-nums">{op.slNo}</td>
+                                <td className="px-2 py-1 border border-stone-200">{op.name}</td>
+                                <td className="px-2 py-1 border border-stone-200 capitalize">{(OB_SECTIONS.find((x) => x.key === op.section) || {}).label || op.section}</td>
+                                <td className="px-2 py-1 border border-stone-200">{op.machine}</td>
+                                <td className="px-2 py-1 border border-stone-200 tabular-nums">{money(op.sam)}</td>
+                                <td className="px-2 py-1 border border-stone-200 tabular-nums">{op.manpower}</td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    )}
+                    <div className="p-3" dangerouslySetInnerHTML={{ __html: sh.html }} />
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex items-center gap-2 px-4 py-3 border-t border-stone-200 shrink-0">
+              <button onClick={() => setShowExportPreview(false)} className="flex items-center gap-1.5 rounded-xl border border-stone-200 text-stone-600 px-3.5 py-2 text-xs font-bold">
+                <X size={14} /> Close
+              </button>
+              <button onClick={handleObPrint} className="flex items-center gap-1.5 rounded-xl border border-stone-200 text-stone-600 px-3.5 py-2 text-xs font-bold">
+                <Printer size={14} /> Print
+              </button>
+              <button onClick={handleObExportExcel} disabled={obExporting} className="flex items-center gap-1.5 rounded-xl bg-amber-500 text-stone-900 px-3.5 py-2 text-xs font-bold ml-auto disabled:opacity-50">
+                <FileSpreadsheet size={14} /> {obExporting ? "Preparing..." : "Export Excel"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
       {style && obTab !== "newstyle" && obTab !== "templateupload" && obTab !== "savedob" && obTab !== "subentries" && (
@@ -1972,11 +2709,11 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
               </div>
               {!(num(style.obTargetQtyPerDay) > 0) ? (
                 <p className="mt-2.5 text-xs text-stone-400">Set Customer Target Qty / Day above to see manpower balance per operation.</p>
-              ) : mpBalance.rows.length === 0 ? (
+              ) : mpBalance.rows.filter((r) => r.section === "sewing").length === 0 ? (
                 <p className="mt-2.5 text-xs text-stone-400">Add sewing operations with SAM below to see manpower balance.</p>
               ) : (
                 <div className="mt-3 space-y-1.5">
-                  {mpBalance.rows.map((r) => (
+                  {mpBalance.rows.filter((r) => r.section === "sewing").map((r) => (
                     <div key={r.id} className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-stone-700">{r.name || `Op ${r.slNo}`}</span>
@@ -2884,6 +3621,65 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
             {savedMsg && <p className="mt-1.5 text-center text-xs text-emerald-600 font-semibold">{savedMsg}</p>}
           </Section>
 
+          <Section title="CM Calculation" icon={TrendingUp}>
+            <div className="rounded-2xl border border-stone-200 bg-white p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2.5">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Currency</span>
+                  <select
+                    value={cmCurrency}
+                    onChange={(e) => onUpdateStyle({ ...style, obCmCurrency: e.target.value })}
+                    className="rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-amber-500"
+                  >
+                    {CM_CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">CM Basis</span>
+                  <div className="flex rounded-xl border border-stone-200 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => onUpdateStyle({ ...style, obCmBasis: "dzn" })}
+                      className={`flex-1 py-2.5 text-xs font-bold ${cmBasis === "dzn" ? "bg-amber-500 text-stone-900" : "bg-white text-stone-500"}`}
+                    >
+                      Per DZN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateStyle({ ...style, obCmBasis: "pcs" })}
+                      className={`flex-1 py-2.5 text-xs font-bold ${cmBasis === "pcs" ? "bg-amber-500 text-stone-900" : "bg-white text-stone-500"}`}
+                    >
+                      Per PCS
+                    </button>
+                  </div>
+                </label>
+              </div>
+              <Field label={`CM / Minute (${cmSymbol})`} value={style.obCmPerMinute || ""} onChange={(v) => onUpdateStyle({ ...style, obCmPerMinute: v })} placeholder="e.g. 0.045" />
+              <Field
+                label="Avg Line Efficiency %"
+                value={style.obCmAvgEffPct || ""}
+                onChange={(v) => onUpdateStyle({ ...style, obCmAvgEffPct: v })}
+                placeholder={avgSewingEffPct ? `e.g. ${money(avgSewingEffPct)} (from sewing ops)` : "e.g. 65"}
+                suffix="%"
+              />
+              {cmPerMinute > 0 ? (
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Stat
+                    label={`CM / ${cmBasis === "pcs" ? "PCS" : "DZN"} ${cmSymbol}`}
+                    value={`${cmSymbol}${money(cmPerDzn)}`}
+                    accent="text-amber-600"
+                    sub={`SMV ÷ Avg Eff% × CM/min${cmBasis === "pcs" ? "" : " × 12"}`}
+                  />
+                  <Stat label={`CM / Machine ${cmSymbol}`} value={`${cmSymbol}${money(cmPerMachine)}`} sub={`CM/${cmBasis === "pcs" ? "PCS" : "DZN"} ÷ Total Manpower`} />
+                </div>
+              ) : (
+                <p className="text-xs text-stone-400">CM / Minute ({cmSymbol}) rate போடுங்க — CM/{cmBasis === "pcs" ? "PCS" : "DZN"}, CM/Machine auto calculate ஆகும்.</p>
+              )}
+            </div>
+          </Section>
+
           <Section title="Line Balancing (Sewing operations)" icon={GitBranch}>
             <div className="rounded-2xl border border-stone-200 bg-white p-4">
               {balancing.rows.length === 0 ? (
@@ -2925,17 +3721,39 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
             <div className="rounded-2xl border border-stone-200 bg-white p-4">
               <div className="grid grid-cols-2 gap-2.5 mb-3">
                 <Stat label="Order Qty" value={style.orderQty || "—"} sub="from Order Book" />
-                <Stat label="Line Target / Day" value={style.obTargetQtyPerDay || "—"} sub="Customer Target Qty/Day, from above" accent="text-amber-600" />
+                <Field label="No. of Lines" value={style.obPlannedLines || ""} onChange={(v) => onUpdateStyle({ ...style, obPlannedLines: v })} />
+              </div>
+              <div className="grid grid-cols-2 gap-2.5 mb-3">
+                <Field
+                  label="Target Qty / Day / Line"
+                  value={style.obRampPerLineTarget || ""}
+                  onChange={(v) => onUpdateStyle({ ...style, obRampPerLineTarget: v })}
+                  placeholder={linePerDayTarget > 0 ? `e.g. ${money(linePerDayTarget)}` : "e.g. 1200"}
+                  suffix="pcs"
+                />
+                <Stat
+                  label="Total Line Target / Day"
+                  value={noOfLines > 0 ? money(rampTotalTarget) : "—"}
+                  sub={noOfLines > 0 ? `${money(rampPerLineTarget)} × ${noOfLines} lines` : "Enter No. of Lines"}
+                  accent="text-amber-600"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2.5 mb-3">
+                <Stat label="Total Manpower" value={rampUpTotalMp > 0 ? money(rampUpTotalMp) : "—"} sub={noOfLines > 0 ? `${money(totalObManpower)} × ${noOfLines} lines` : "Cutting+Sewing+QC+Packing MP entered"} />
+                <Stat label="Avg Efficiency %" value={rampUpAvgEffPct > 0 ? `${money(rampUpAvgEffPct)}%` : "—"} sub={`avg of daily Eff% @ ${money(rampUpSam)} SAM`} accent="text-emerald-600" />
               </div>
 
-              <h5 className="text-[11px] font-bold text-stone-500 uppercase tracking-wide mb-2">Ramp-up Days (manual entry, up to peak)</h5>
+              <h5 className="text-[11px] font-bold text-stone-500 uppercase tracking-wide mb-2">Ramp-up Days (manual entry, up to peak — enter QTY PER LINE)</h5>
               <div className="space-y-1.5 mb-2.5">
                 {(style.obRampUpDays || []).map((r, i) => (
                   <div key={r.id} className="flex items-center gap-1.5">
                     <span className="w-14 text-xs font-semibold text-stone-500">Day {i + 1}</span>
-                    <input type="number" value={r.qty} placeholder="Qty" onChange={(e) => updateRampUpDay(r.id, e.target.value)} className="flex-1 text-xs rounded-md border border-stone-200 px-2 py-1.5 outline-none focus:border-amber-500 tabular-nums" />
-                    {num(style.obTargetQtyPerDay) > 0 && num(r.qty) > 0 && (
-                      <span className="text-[10px] text-stone-400 w-10 text-right">{((num(r.qty) / num(style.obTargetQtyPerDay)) * 100).toFixed(0)}%</span>
+                    <input type="number" value={r.qty} placeholder="Qty/line" onChange={(e) => updateRampUpDay(r.id, e.target.value)} className="flex-1 text-xs rounded-md border border-stone-200 px-2 py-1.5 outline-none focus:border-amber-500 tabular-nums" />
+                    {noOfLines > 0 && num(r.qty) > 0 && (
+                      <span className="text-[10px] text-stone-400 w-24 text-right">× {noOfLines} = {money(num(r.qty) * noOfLines)}</span>
+                    )}
+                    {rampPerLineTarget > 0 && num(r.qty) > 0 && (
+                      <span className="text-[10px] text-stone-400 w-10 text-right">{((num(r.qty) / rampPerLineTarget) * 100).toFixed(0)}%</span>
                     )}
                     <button onClick={() => removeRampUpDay(r.id)} className="text-stone-300 active:text-red-600 shrink-0"><X size={14} /></button>
                   </div>
@@ -2947,32 +3765,45 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
 
               {!(num(style.orderQty) > 0) ? (
                 <p className="text-xs text-stone-400">Set Order Qty in the Order Book to see the auto-calculated remaining days.</p>
-              ) : !(num(style.obTargetQtyPerDay) > 0) ? (
-                <p className="text-xs text-stone-400">Set Customer Target Qty/Day above — remaining days after ramp-up are calculated at that Line Target.</p>
+              ) : !(rampTotalTarget > 0) ? (
+                <p className="text-xs text-stone-400">Set Target Qty/Day/Line and No. of Lines above — remaining days after ramp-up are calculated at that combined Line Target.</p>
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-2.5 mb-2.5">
-                    <Stat label="Ramp-up Qty Entered" value={money(rampUpPlan.manualSum)} sub={`Day 1-${(style.obRampUpDays || []).length}`} />
+                    <Stat label="Ramp-up Qty Entered" value={money(rampUpPlan.manualSum)} sub={`Day 1-${(style.obRampUpDays || []).length}, × ${noOfLines || 1} lines`} />
                     <Stat label="Remaining Qty" value={money(rampUpPlan.remaining)} sub="after ramp-up days" />
-                    <Stat label="Auto Days Needed" value={rampUpPlan.autoDaysCount} sub="@ Line Target/day" accent="text-amber-600" />
+                    <Stat label="Days Needed" value={rampUpPlan.autoDaysExact.toFixed(1)} sub="@ Total Line Target/day" accent="text-amber-600" />
                   </div>
                   <div className="flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 mb-3">
-                    <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Total Days to Complete Order</span>
-                    <span className="text-lg font-bold text-amber-700 tabular-nums">{rampUpPlan.totalDays}</span>
+                    <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Lead Time — Total Days to Complete Order</span>
+                    <span className="text-lg font-bold text-amber-700 tabular-nums">{rampUpPlan.totalDaysExact.toFixed(1)}</span>
                   </div>
                   <div className="space-y-1">
-                    {rampUpPlan.rows.map((r) => (
-                      <div key={r.day} className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 ${r.manual ? "bg-stone-50 border-stone-200" : "bg-white border-dashed border-stone-300"}`}>
-                        <span className="text-xs font-semibold text-stone-600 w-16">Day {r.day}</span>
-                        <span className="text-xs tabular-nums text-stone-700">{r.qty} pcs</span>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${r.manual ? "bg-stone-200 text-stone-600" : "bg-amber-100 text-amber-700"}`}>
-                          {r.manual ? "manual" : "auto @ Line Target"}
-                        </span>
-                      </div>
-                    ))}
+                    {rampUpPlan.rows.map((r) => {
+                      const dayEff = rampDayEffPct(r.qty);
+                      return (
+                        <div key={r.day} className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 ${r.manual ? "bg-stone-50 border-stone-200" : "bg-white border-dashed border-stone-300"}`}>
+                          <span className="text-xs font-semibold text-stone-600 w-16">Day {r.day}</span>
+                          <span className="text-xs tabular-nums text-stone-700">{r.qty} pcs</span>
+                          {rampUpTotalMp > 0 && (
+                            <span
+                              className={`text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded ${
+                                dayEff >= 95 && dayEff <= 110 ? "bg-emerald-100 text-emerald-700" : dayEff > 110 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                              }`}
+                              title="Per-day efficiency = Qty ÷ ((Total Manpower × Working Minutes) ÷ SAM) × 100"
+                            >
+                              {dayEff.toFixed(0)}% eff
+                            </span>
+                          )}
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${r.manual ? "bg-stone-200 text-stone-600" : "bg-amber-100 text-amber-700"}`}>
+                            {r.manual ? "manual" : "auto @ Line Target"}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                   <p className="mt-1.5 text-[10px] text-stone-400">
-                    Days after your manual ramp-up entries are auto-filled at the Line Target until the full Order Qty is covered — no lead-time entry needed.
+                    Days after your manual ramp-up entries are auto-filled at the Total Line Target (Per-Line Target × No. of Lines) until the full Order Qty is covered — lead time shown as exact days (e.g. 18.5), not rounded up.
                   </p>
                 </>
               )}
