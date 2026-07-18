@@ -2262,8 +2262,8 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
   // (perLineTarget × noOfLines) is what actually drives the ramp-up day-count / lead-time maths —
   // this is what fixes the lead-time so it matches the per-line plan (e.g. 1200 × 2 lines =
   // 2400/day; 44400 remaining ÷ 2400 = 18.5 days + 12 ramp-up days = 30.5 days lead time).
-  const rampPerLineTarget = num(style.obRampPerLineTarget) > 0 ? num(style.obRampPerLineTarget) : linePerDayTarget;
-  const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(style.obTargetQtyPerDay);
+  const rampPerLineTarget = num(style?.obRampPerLineTarget || 0) > 0 ? num(style?.obRampPerLineTarget || 0) : linePerDayTarget;
+const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(style?.obTargetQtyPerDay || 0);
   // The Operation Bulletin's manpower entries (totalObManpower) describe ONE line's headcount.
   // With 2+ lines running the same operations side by side, the manpower actually on the floor is
   // that many times bigger — so Ramp-up's efficiency maths must multiply totalObManpower by
