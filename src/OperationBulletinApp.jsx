@@ -1919,6 +1919,18 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
       const el = document.querySelector(`[data-op-row="${nextOp.id}"][data-op-col="${col}"]`);
       if (el) { el.focus(); if (el.select) el.select(); return; }
     }
+    // No next row to jump to. If Enter was pressed in the Manpower field of the very last row,
+    // automatically add a new blank operation row and move focus into its Operation Name field —
+    // so typing a long Operation Bulletin never has to stop to tap "Add Operation".
+    if (col === "manpower") {
+      const nextNo = operations.filter((o) => !o.isHeading).length + 1;
+      const newOp = { ...blankOBOperation(), slNo: String(nextNo) };
+      setOperations([...operations, newOp]);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-op-row="${newOp.id}"][data-op-col="name"]`);
+        if (el) { el.focus(); if (el.select) el.select(); }
+      }, 50);
+    }
   };
 
   const obFileInputRef = useRef(null);
@@ -3389,7 +3401,7 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                             title="Tap to preview / change photo"
                             className="shrink-0"
                           >
-                            <img src={getGroupPhoto(g.heading)} alt={g.heading} className="w-9 h-9 rounded-lg object-cover border border-stone-200" />
+                            <img src={getGroupPhoto(g.heading)} alt={g.heading} className="w-16 h-16 rounded-lg object-cover border border-stone-200" />
                           </button>
                         )}
                         <div className="min-w-0">
@@ -3404,6 +3416,15 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                           className="flex items-center gap-1 rounded-md border border-dashed border-stone-300 text-stone-500 font-bold px-2.5 py-1.5 text-[11px] active:bg-stone-100 whitespace-nowrap"
                         >
                           <Pencil size={12} /> {isEditOpen ? "Close" : "Edit"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertSubEntryGroup(g.heading, g.rows)}
+                          disabled={!style}
+                          title="Insert every operation in this group at once"
+                          className="flex items-center gap-1 rounded-md border border-dashed border-emerald-400 text-emerald-600 disabled:opacity-40 disabled:border-stone-200 disabled:text-stone-300 font-bold px-2.5 py-1.5 text-[11px] active:bg-emerald-100 whitespace-nowrap"
+                        >
+                          <Layers size={12} /> Insert
                         </button>
                         <button
                           type="button"
