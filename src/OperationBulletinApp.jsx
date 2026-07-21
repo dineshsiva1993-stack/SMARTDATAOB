@@ -7,17 +7,35 @@ import {
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+
+// Firebase project: smart-data-ob. Used so that users created on one device/browser are visible
+// and can log in from any other device/browser — this replaces the old localStorage-only user
+// store, which never left the device the user was created on.
+const firebaseConfig = {
+  apiKey: "AIzaSyAluR9Y96TOfaA6b2mW-OLdaue1kwu-pBQ",
+  authDomain: "smart-data-ob.firebaseapp.com",
+  projectId: "smart-data-ob",
+  storageBucket: "smart-data-ob.firebasestorage.app",
+  messagingSenderId: "1082187835732",
+  appId: "1:1082187835732:web:7108d2a8a9520c806ac0c1",
+  measurementId: "G-NWXP5WZYM5",
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const OB_USERS_COLLECTION = "ob_users";
 
 const GSD_LOGO_DATA_URI = "data:image/jpeg;base64,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";
 
 
 // Login gate for Operation Bulletin. This seeds the very first admin user the first time the
-// app runs on a device — after that, all users (including this one) live in localStorage
-// under OB_USERS_KEY and are managed from the in-app Admin screen.
+// Firebase project is ever used (empty "ob_users" collection) — after that, all users (including
+// this one) live in Firestore and are managed from the in-app Admin screen, visible to every
+// device/browser that opens this app.
 const OB_CREDENTIALS = [{ user: "admin", pass: "smartdataob@2026" }];
 const OB_SESSION_KEY = "obAuthed";
 const OB_SESSION_USER_KEY = "obAuthedUser";
-const OB_USERS_KEY = "ob-users";
 
 // Menus that can be individually granted to a non-admin user from the Admin screen.
 const OB_MENU_OPTIONS = [
@@ -32,32 +50,66 @@ const OB_MENU_OPTIONS = [
   { key: "savedob", label: "Saved OB (Buyer-wise)" },
 ];
 
-// Reads the user list from localStorage; on first-ever run (no users saved yet) it seeds a
-// single full-access Admin user from OB_CREDENTIALS above so there's always a way in.
-function loadObUsersRaw() {
-  try {
-    const raw = localStorage.getItem(OB_USERS_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    if (Array.isArray(parsed) && parsed.length) return parsed;
-  } catch (e) {}
-  return OB_CREDENTIALS.map((c) => ({
-    id: uid(),
-    username: c.user,
-    password: c.pass,
-    isAdmin: true,
-    menus: OB_MENU_OPTIONS.map((m) => m.key),
-    factoryIds: [],
-  }));
-}
-
-// Simple persisted-users store, same pattern as useGsdLibrary below.
+// Users now live in Firestore (collection "ob_users") instead of localStorage, so a user created
+// on one device/browser can log in from any other device/browser — that's the whole point of
+// moving off localStorage, which never left the device it was written on.
+//
+// On the very first-ever run for this Firebase project (collection totally empty), we seed a
+// single full-access Admin user from OB_CREDENTIALS above so there's always a way in. Every
+// browser that connects afterwards sees the same live list via onSnapshot.
 function useObUsers() {
-  const [users, setUsersState] = useState(loadObUsersRaw);
-  const save = (next) => {
-    setUsersState(next);
-    try { localStorage.setItem(OB_USERS_KEY, JSON.stringify(next)); } catch (e) {}
+  const [users, setUsersState] = useState([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const usersRef = useRef(users);
+  usersRef.current = users;
+  const seededRef = useRef(false);
+
+  useEffect(() => {
+    const usersCol = collection(db, OB_USERS_COLLECTION);
+    const unsub = onSnapshot(
+      usersCol,
+      async (snap) => {
+        if (snap.empty && !seededRef.current) {
+          seededRef.current = true;
+          const seed = OB_CREDENTIALS.map((c) => ({
+            id: uid(),
+            username: c.user,
+            password: c.pass,
+            isAdmin: true,
+            menus: OB_MENU_OPTIONS.map((m) => m.key),
+            factoryIds: [],
+          }));
+          try {
+            await Promise.all(seed.map((u) => setDoc(doc(db, OB_USERS_COLLECTION, u.id), u)));
+          } catch (e) {}
+          return; // onSnapshot fires again once the seeded docs land
+        }
+        setUsersState(snap.docs.map((d) => d.data()));
+        setUsersLoaded(true);
+      },
+      (err) => {
+        console.error("Failed to load users from Firebase:", err);
+        setUsersLoaded(true);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  const save = async (next) => {
+    const prevIds = new Set(usersRef.current.map((u) => u.id));
+    const nextIds = new Set(next.map((u) => u.id));
+    setUsersState(next); // optimistic local update; onSnapshot will reconcile shortly after
+    try {
+      await Promise.all(next.map((u) => setDoc(doc(db, OB_USERS_COLLECTION, u.id), u)));
+      await Promise.all(
+        [...prevIds].filter((id) => !nextIds.has(id)).map((id) => deleteDoc(doc(db, OB_USERS_COLLECTION, id)))
+      );
+    } catch (e) {
+      console.error("Failed to save users to Firebase:", e);
+    }
   };
-  return { users, save };
+
+  return { users, usersLoaded, save };
 }
 
 // =====================================================================================
@@ -4424,18 +4476,32 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
-  const { users, save: saveUsers } = useObUsers();
+  const { users, usersLoaded, save: saveUsers } = useObUsers();
 
   const [authed, setAuthed] = useState(() => {
     try { return sessionStorage.getItem(OB_SESSION_KEY) === "1"; } catch (e) { return false; }
   });
-  const [currentUser, setCurrentUser] = useState(() => {
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Users now load asynchronously from Firebase. Once they arrive, restore the session (if any)
+  // by matching the saved username, and keep currentUser in sync if their record changes (e.g.
+  // an admin edits their menu access from another device) or disappears (deleted).
+  useEffect(() => {
+    if (!usersLoaded) return;
+    let sessionUname = null;
     try {
-      if (sessionStorage.getItem(OB_SESSION_KEY) !== "1") return null;
-      const uname = sessionStorage.getItem(OB_SESSION_USER_KEY);
-      return loadObUsersRaw().find((u) => u.username === uname) || null;
-    } catch (e) { return null; }
-  });
+      if (sessionStorage.getItem(OB_SESSION_KEY) === "1") sessionUname = sessionStorage.getItem(OB_SESSION_USER_KEY);
+    } catch (e) {}
+    if (!sessionUname) return;
+    const match = users.find((u) => u.username === sessionUname) || null;
+    setCurrentUser(match);
+  }, [usersLoaded]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const updated = users.find((u) => u.id === currentUser.id) || null;
+    if (JSON.stringify(updated) !== JSON.stringify(currentUser)) setCurrentUser(updated);
+  }, [users]);
   const [loginUser, setLoginUser] = useState("");
   const [loginPass, setLoginPass] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -4461,6 +4527,10 @@ function App() {
 
   const handleLogin = (e) => {
     e.preventDefault();
+    if (!usersLoaded) {
+      setLoginError("Still connecting, please try again in a moment.");
+      return;
+    }
     const match = users.find((u) => u.username === loginUser.trim() && u.password === loginPass);
     if (match) {
       try {
@@ -4595,9 +4665,13 @@ function App() {
               </div>
             </div>
             {loginError && <div className="text-[12px] text-red-600 font-semibold mt-2.5 text-center">{loginError}</div>}
+            {!usersLoaded && !loginError && (
+              <div className="text-[11px] text-stone-400 font-semibold mt-2.5 text-center">Connecting…</div>
+            )}
             <button
               type="button" onClick={handleLogin}
-              className="w-full mt-5 py-2.5 rounded-lg font-extrabold text-sm bg-amber-400 text-stone-900 hover:brightness-105"
+              disabled={!usersLoaded}
+              className="w-full mt-5 py-2.5 rounded-lg font-extrabold text-sm bg-amber-400 text-stone-900 hover:brightness-105 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Sign In
             </button>
