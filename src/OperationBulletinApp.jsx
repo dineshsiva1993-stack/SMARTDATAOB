@@ -1180,7 +1180,7 @@ function EmptyState({ icon: Icon, title, body, actionLabel, onAction }) {
 
 // Reusable Photo Reference upload + preview control — used on New Style creation and on Add
 // Group (Sub Entries), so a reference photo can be attached and previewed right where it's needed.
-function PhotoRefUpload({ value, onChange, label = "Photo Reference" }) {
+function PhotoRefUpload({ value, onChange, label = "Photo Reference", compact = false }) {
   const inputRef = useRef(null);
   const handleFile = (e) => {
     const file = e.target.files?.[0];
@@ -1190,6 +1190,47 @@ function PhotoRefUpload({ value, onChange, label = "Photo Reference" }) {
     reader.readAsDataURL(file);
     e.target.value = "";
   };
+
+  // Compact mode: a tall square preview box that fills its column — used where the photo sits
+  // beside the form fields (e.g. New Style: fields take 3/4 width, photo preview takes 1/4).
+  if (compact) {
+    return (
+      <div className="h-full flex flex-col space-y-1.5">
+        <p className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">{label}</p>
+        <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+        {value ? (
+          <div className="relative flex-1 min-h-[96px] rounded-xl overflow-hidden border border-stone-200">
+            <img src={value} alt="Reference preview" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="absolute top-1 right-1 rounded-full bg-black/60 text-white p-0.5 active:bg-black/80"
+              title="Remove photo"
+            >
+              <X size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-1 bg-black/55 text-white py-1 text-[10px] font-bold active:bg-black/70"
+            >
+              <Upload size={11} /> Change
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex-1 min-h-[96px] flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-stone-300 text-stone-400 px-1.5 py-2 text-center active:bg-stone-50"
+          >
+            <Upload size={16} />
+            <span className="text-[10px] font-bold leading-tight">Upload<br />Photo</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1.5">
       <p className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">{label}</p>
@@ -2069,6 +2110,10 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
   };
   const { templates: obTemplates, save: saveObTemplates } = useObTemplateLibrary();
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  // Style Details (Style No/Buyer/Photo/Product Costing block) collapsed by default on the
+  // Operations tab so the OB Template Library sits right at the top — no scrolling needed to
+  // reach it. Still expandable if the planner wants to edit style header info from here.
+  const [styleDetailsOpen, setStyleDetailsOpen] = useState(obTab !== "ops");
   const handleSaveAsTemplate = () => {
     const desc = (style.obDescription || "").trim();
     if (!desc) { alert('Template save பண்ண முதலில் "Style Description" fill பண்ணுங்க.'); return; }
@@ -2277,6 +2322,92 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
       className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none hover:bg-amber-300/60 active:bg-amber-400"
     />
   );
+
+  // Excel-style row tools for the Operation Bulletin table: tick rows, right-click a row for
+  // Insert Above/Below, Cut, Copy, Paste, Delete — and filter visible rows by Section, just like
+  // the right-click menu the planner is used to in the OB Excel sheet.
+  const [selectedOpIds, setSelectedOpIds] = useState(() => new Set());
+  const [opClipboard, setOpClipboard] = useState(null); // { mode: 'cut'|'copy', rows: [...] }
+  const [opContextMenu, setOpContextMenu] = useState(null); // { x, y, opId }
+  const [opSectionFilter, setOpSectionFilter] = useState("");
+  const [opSectionFilterOpen, setOpSectionFilterOpen] = useState(false);
+  useEffect(() => {
+    if (!opContextMenu) return;
+    const close = () => setOpContextMenu(null);
+    window.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    return () => { window.removeEventListener("click", close); window.removeEventListener("scroll", close, true); };
+  }, [opContextMenu]);
+  useEffect(() => {
+    if (!opSectionFilterOpen) return;
+    const close = () => setOpSectionFilterOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [opSectionFilterOpen]);
+  const toggleOpSelected = (id) => setSelectedOpIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  const visibleOperations = useMemo(
+    () => (opSectionFilter ? operations.filter((o) => o.isHeading || o.section === opSectionFilter) : operations),
+    [operations, opSectionFilter]
+  );
+  const allVisibleSelected = visibleOperations.length > 0 && visibleOperations.every((o) => selectedOpIds.has(o.id));
+  const toggleSelectAllVisible = () => {
+    setSelectedOpIds((prev) => {
+      if (allVisibleSelected) { const next = new Set(prev); visibleOperations.forEach((o) => next.delete(o.id)); return next; }
+      const next = new Set(prev); visibleOperations.forEach((o) => next.add(o.id)); return next;
+    });
+  };
+  const openOpContextMenu = (e, opId) => {
+    e.preventDefault();
+    if (!selectedOpIds.has(opId)) setSelectedOpIds(new Set([opId]));
+    setOpContextMenu({ x: e.clientX, y: e.clientY, opId });
+  };
+  const rowsForClipboard = (anchorId) => {
+    const ids = selectedOpIds.has(anchorId) && selectedOpIds.size > 0 ? selectedOpIds : new Set([anchorId]);
+    return operations.filter((o) => ids.has(o.id));
+  };
+  const handleOpCopy = () => {
+    if (!opContextMenu) return;
+    setOpClipboard({ mode: "copy", rows: rowsForClipboard(opContextMenu.opId).map((o) => ({ ...o })) });
+    setOpContextMenu(null);
+  };
+  const handleOpCut = () => {
+    if (!opContextMenu) return;
+    const rows = rowsForClipboard(opContextMenu.opId).map((o) => ({ ...o }));
+    setOpClipboard({ mode: "cut", rows });
+    const cutIds = new Set(rows.map((o) => o.id));
+    setOperations(operations.filter((o) => !cutIds.has(o.id)));
+    setSelectedOpIds(new Set());
+    setOpContextMenu(null);
+  };
+  const handleOpPaste = (position) => {
+    if (!opContextMenu || !opClipboard) return;
+    const idx = operations.findIndex((o) => o.id === opContextMenu.opId);
+    if (idx === -1) return;
+    const pasted = opClipboard.rows.map((o) => ({ ...o, id: uid() }));
+    const insertAt = position === "above" ? idx : idx + 1;
+    const next = [...operations];
+    next.splice(insertAt, 0, ...pasted);
+    setOperations(next);
+    if (opClipboard.mode === "cut") setOpClipboard(null);
+    setOpContextMenu(null);
+  };
+  const handleOpInsertBlank = (position) => {
+    if (!opContextMenu) return;
+    const idx = operations.findIndex((o) => o.id === opContextMenu.opId);
+    if (idx === -1) return;
+    const prevNo = num(operations[idx].slNo);
+    const next = [...operations];
+    next.splice(position === "above" ? idx : idx + 1, 0, { ...blankOBOperation(), slNo: prevNo > 0 ? String(prevNo + (position === "above" ? 0 : 1)) : "" });
+    setOperations(next);
+    setOpContextMenu(null);
+  };
+  const handleOpDeleteSelected = () => {
+    if (!opContextMenu) return;
+    const ids = new Set(rowsForClipboard(opContextMenu.opId).map((o) => o.id));
+    setOperations(operations.filter((o) => !ids.has(o.id)));
+    setSelectedOpIds(new Set());
+    setOpContextMenu(null);
+  };
   // Working Hours/Day drives every shift-based calc below — defaults to the standard 8-hour
   // shift (SHIFT_MINUTES) when the field is left blank.
   const shiftMinutes = num(style?.obWorkingHours) > 0 ? num(style.obWorkingHours) * 60 : SHIFT_MINUTES;
@@ -2431,12 +2562,18 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
       {obTab === "newstyle" ? (
         <div className="rounded-2xl border-2 border-dashed border-amber-300 bg-white p-4 space-y-2.5">
           <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">New Style</p>
-          <Field label="Style No" value={newStyleNo} onChange={setNewStyleNo} type="text" placeholder="e.g. S_116484" />
-          <div className="grid grid-cols-2 gap-2.5">
-            <Field label="Buyer" value={newBuyer} onChange={setNewBuyer} type="text" placeholder="e.g. QVC" />
-            <Field label="Order Qty" value={newOrderQty} onChange={setNewOrderQty} suffix="pcs" />
+          <div className="grid grid-cols-4 gap-2.5">
+            <div className="col-span-3 space-y-2.5">
+              <Field label="Style No" value={newStyleNo} onChange={setNewStyleNo} type="text" placeholder="e.g. S_116484" />
+              <div className="grid grid-cols-2 gap-2.5">
+                <Field label="Buyer" value={newBuyer} onChange={setNewBuyer} type="text" placeholder="e.g. QVC" />
+                <Field label="Order Qty" value={newOrderQty} onChange={setNewOrderQty} suffix="pcs" />
+              </div>
+            </div>
+            <div className="col-span-1">
+              <PhotoRefUpload value={newPhotoRef} onChange={setNewPhotoRef} label="Style Photo" compact />
+            </div>
           </div>
-          <PhotoRefUpload value={newPhotoRef} onChange={setNewPhotoRef} label="Style Photo Reference" />
           <div className="flex gap-2">
             <button onClick={handleCreateStyle} disabled={!newStyleNo} className="flex-1 rounded-xl bg-amber-500 disabled:opacity-40 text-stone-900 font-bold py-2.5 text-sm active:bg-amber-400">
               Create Style
@@ -2532,8 +2669,44 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
             <p className="text-xs text-stone-400">No styles yet — use the <b>New Style</b> item in the Operation Bulletin menu to create one.</p>
           )}
 
+          {style && obTab === "ops" && (
+            <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-3 space-y-2">
+              <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">OB Template Library</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <select value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)} className="flex-1 min-w-[160px] rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-amber-500">
+                  <option value="">Select saved Style Description...</option>
+                  {obTemplates.map((t) => <option key={t.id} value={t.id}>{t.description} ({t.operations.filter((o) => !o.isHeading).length} ops)</option>)}
+                </select>
+                <button onClick={handleLoadTemplate} disabled={!selectedTemplateId} className="flex items-center gap-1.5 rounded-lg bg-amber-500 text-stone-900 px-3 py-2 text-xs font-bold disabled:opacity-40 active:bg-amber-400">
+                  <Download size={13} /> Load
+                </button>
+                {selectedTemplateId && (
+                  <button onClick={() => handleDeleteTemplate(selectedTemplateId)} className="flex items-center gap-1.5 rounded-lg border border-red-200 text-red-600 px-2.5 py-2 text-xs font-bold">
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+              <button onClick={handleSaveAsTemplate} className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-amber-300 text-amber-700 px-3 py-2 text-xs font-bold active:bg-amber-100">
+                <Save size={13} /> Save Current Operations as Template
+              </button>
+              <p className="text-[10px] text-stone-400">ஒரு Style Description-க்கு (ex: "C Neck Long Sleeve") operations fill பண்ணி/Excel Import பண்ணி — "Save Current Operations as Template" தட்டுங்க. அடுத்த முறை அதே மாதிரி style வந்தா, இங்க Select பண்ணி Load தட்டுங்க — Operation Bulletin முழுசா auto-ஆ வந்துடும், தேவையான மாற்றம் மட்டும் edit பண்ணி வேலையை சீக்கிரம் முடிக்கலாம்.</p>
+            </div>
+          )}
+
           {style && (
             <>
+              {obTab === "ops" && (
+                <button
+                  type="button"
+                  onClick={() => setStyleDetailsOpen((v) => !v)}
+                  className="w-full flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-[11px] font-bold text-stone-500 uppercase tracking-wide"
+                >
+                  <span>Style Details {styleDetailsOpen ? "" : `· ${style.styleNo || "Untitled"}`}</span>
+                  {styleDetailsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
+              )}
+              {styleDetailsOpen && (
+              <>
               <div className="grid grid-cols-2 gap-2.5">
                 <Field label="Style No" value={style.styleNo || ""} onChange={(v) => onUpdateStyle({ ...style, styleNo: v })} type="text" placeholder="e.g. S_116484" />
                 <Field label="Buyer" value={style.buyer || ""} onChange={(v) => onUpdateStyle({ ...style, buyer: v })} type="text" placeholder="e.g. QVC" />
@@ -2564,29 +2737,7 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                   </p>
                 )}
               </div>
-
-              {obTab === "ops" && (
-              <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-3 space-y-2">
-                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">OB Template Library</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <select value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)} className="flex-1 min-w-[160px] rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-amber-500">
-                    <option value="">Select saved Style Description...</option>
-                    {obTemplates.map((t) => <option key={t.id} value={t.id}>{t.description} ({t.operations.filter((o) => !o.isHeading).length} ops)</option>)}
-                  </select>
-                  <button onClick={handleLoadTemplate} disabled={!selectedTemplateId} className="flex items-center gap-1.5 rounded-lg bg-amber-500 text-stone-900 px-3 py-2 text-xs font-bold disabled:opacity-40 active:bg-amber-400">
-                    <Download size={13} /> Load
-                  </button>
-                  {selectedTemplateId && (
-                    <button onClick={() => handleDeleteTemplate(selectedTemplateId)} className="flex items-center gap-1.5 rounded-lg border border-red-200 text-red-600 px-2.5 py-2 text-xs font-bold">
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-                <button onClick={handleSaveAsTemplate} className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-amber-300 text-amber-700 px-3 py-2 text-xs font-bold active:bg-amber-100">
-                  <Save size={13} /> Save Current Operations as Template
-                </button>
-                <p className="text-[10px] text-stone-400">ஒரு Style Description-க்கு (ex: "C Neck Long Sleeve") operations fill பண்ணி/Excel Import பண்ணி — "Save Current Operations as Template" தட்டுங்க. அடுத்த முறை அதே மாதிரி style வந்தா, இங்க Select பண்ணி Load தட்டுங்க — Operation Bulletin முழுசா auto-ஆ வந்துடும், தேவையான மாற்றம் மட்டும் edit பண்ணி வேலையை சீக்கிரம் முடிக்கலாம்.</p>
-              </div>
+              </>
               )}
             </>
           )}
@@ -2832,6 +2983,10 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
               <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
                 {operations.length === 0 ? (
                   <p className="text-xs text-stone-400 px-3 py-3">No operations added yet. Add cutting, sewing, QC and packing operations below.</p>
+                ) : visibleOperations.length === 0 ? (
+                  <p className="text-xs text-stone-400 px-3 py-3">
+                    No rows match this Section filter. <button type="button" onClick={() => setOpSectionFilter("")} className="text-amber-600 font-bold underline">Clear filter</button>
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table
@@ -2839,6 +2994,7 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                       style={{ width: Object.values(obColWidths).reduce((a, b) => a + b, 0) + 40, tableLayout: "fixed" }}
                     >
                       <colgroup>
+                        <col style={{ width: 28 }} />
                         <col style={{ width: obColWidths.slno }} />
                         <col style={{ width: obColWidths.head }} />
                         <col style={{ width: obColWidths.operation }} />
@@ -2851,10 +3007,38 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                       </colgroup>
                       <thead>
                         <tr className="bg-stone-50 text-[10px] uppercase tracking-wide text-stone-500 border-b border-stone-200">
+                          <th className="px-1.5 py-2 text-center">
+                            <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} title="Select all rows" className="accent-amber-500" />
+                          </th>
                           <th className="relative px-2 py-2 text-left">#<ObColResizeHandle colKey="slno" /></th>
                           <th className="relative px-2 py-2 text-left">Head<ObColResizeHandle colKey="head" /></th>
                           <th className="relative px-2 py-2 text-left">Operation<ObColResizeHandle colKey="operation" /></th>
-                          <th className="relative px-2 py-2 text-left">Section<ObColResizeHandle colKey="section" /></th>
+                          <th className="relative px-2 py-2 text-left">
+                            <span className="inline-flex items-center gap-1 relative">
+                              Section
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setOpSectionFilterOpen((v) => !v); }}
+                                title="Filter by Section"
+                                className={`rounded p-0.5 ${opSectionFilter ? "text-amber-600" : "text-stone-400"}`}
+                              >
+                                <ChevronDown size={11} />
+                              </button>
+                              {opSectionFilterOpen && (
+                                <div className="absolute z-20 top-full left-0 mt-1 w-32 rounded-lg border border-stone-200 bg-white shadow-lg py-1 normal-case">
+                                  <button type="button" onClick={() => { setOpSectionFilter(""); setOpSectionFilterOpen(false); }} className={`w-full text-left px-2.5 py-1.5 text-[11px] font-semibold ${!opSectionFilter ? "text-amber-600" : "text-stone-600"}`}>
+                                    All Sections
+                                  </button>
+                                  {OB_SECTIONS.map((s) => (
+                                    <button key={s.key} type="button" onClick={() => { setOpSectionFilter(s.key); setOpSectionFilterOpen(false); }} className={`w-full text-left px-2.5 py-1.5 text-[11px] font-semibold ${opSectionFilter === s.key ? "text-amber-600" : "text-stone-600"}`}>
+                                      {s.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </span>
+                            <ObColResizeHandle colKey="section" />
+                          </th>
                           <th className="relative px-2 py-2 text-left">Machine<ObColResizeHandle colKey="machine" /></th>
                           <th className="relative px-2 py-2 text-left">SAM<ObColResizeHandle colKey="sam" /></th>
                           <th className="relative px-2 py-2 text-left">Manpower<ObColResizeHandle colKey="manpower" /></th>
@@ -2863,11 +3047,18 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                         </tr>
                       </thead>
                       <tbody>
-                        {operations.map((op) => {
+                        {visibleOperations.map((op) => {
                           const mpRow = mpBalance.rows.find((r) => r.id === op.id);
+                          const opSelected = selectedOpIds.has(op.id);
                           return (
                             <React.Fragment key={op.id}>
-                              <tr className={`group border-b border-stone-100 align-top ${op.isHeading ? "bg-stone-50" : ""}`}>
+                              <tr
+                                onContextMenu={(e) => openOpContextMenu(e, op.id)}
+                                className={`group border-b border-stone-100 align-top ${op.isHeading ? "bg-stone-50" : ""} ${opSelected ? "!bg-amber-50" : ""}`}
+                              >
+                                <td className="px-1.5 py-1.5 text-center">
+                                  <input type="checkbox" checked={opSelected} onChange={() => toggleOpSelected(op.id)} className="accent-amber-500" />
+                                </td>
                                 <td className="px-2 py-1.5">
                                   <input
                                     type="text"
@@ -3064,7 +3255,7 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                                 </td>
                               </tr>
                               <tr>
-                                <td colSpan={9} className="px-2 py-0.5">
+                                <td colSpan={10} className="px-2 py-0.5">
                                   <button
                                     type="button"
                                     onClick={() => insertOperationAfter(op.id)}
@@ -3233,7 +3424,74 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
               </div>
             </div>
             )}
+
+            {selectedOpIds.size > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs">
+                <span className="font-bold text-amber-700">{selectedOpIds.size} row{selectedOpIds.size > 1 ? "s" : ""} selected</span>
+                <button
+                  type="button"
+                  onClick={() => { setOpClipboard({ mode: "copy", rows: operations.filter((o) => selectedOpIds.has(o.id)).map((o) => ({ ...o })) }); }}
+                  className="rounded-lg border border-stone-200 bg-white px-2.5 py-1 font-bold text-stone-600"
+                >
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const rows = operations.filter((o) => selectedOpIds.has(o.id)).map((o) => ({ ...o }));
+                    setOpClipboard({ mode: "cut", rows });
+                    setOperations(operations.filter((o) => !selectedOpIds.has(o.id)));
+                    setSelectedOpIds(new Set());
+                  }}
+                  className="rounded-lg border border-stone-200 bg-white px-2.5 py-1 font-bold text-stone-600"
+                >
+                  Cut
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setOperations(operations.filter((o) => !selectedOpIds.has(o.id))); setSelectedOpIds(new Set()); }}
+                  className="rounded-lg border border-red-200 bg-white px-2.5 py-1 font-bold text-red-600"
+                >
+                  Delete
+                </button>
+                <button type="button" onClick={() => setSelectedOpIds(new Set())} className="ml-auto text-stone-400 font-bold">Clear</button>
+              </div>
+            )}
           </Section>
+
+          {opContextMenu && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ position: "fixed", top: Math.min(opContextMenu.y, window.innerHeight - 260), left: Math.min(opContextMenu.x, window.innerWidth - 190) }}
+              className="z-50 w-48 rounded-xl border border-stone-200 bg-white shadow-xl py-1.5 text-xs"
+            >
+              <button type="button" onClick={() => handleOpInsertBlank("above")} className="w-full text-left px-3 py-1.5 font-semibold text-stone-700 hover:bg-stone-50">Insert row above</button>
+              <button type="button" onClick={() => handleOpInsertBlank("below")} className="w-full text-left px-3 py-1.5 font-semibold text-stone-700 hover:bg-stone-50">Insert row below</button>
+              <div className="my-1 border-t border-stone-100" />
+              <button type="button" onClick={handleOpCut} className="w-full text-left px-3 py-1.5 font-semibold text-stone-700 hover:bg-stone-50">Cut</button>
+              <button type="button" onClick={handleOpCopy} className="w-full text-left px-3 py-1.5 font-semibold text-stone-700 hover:bg-stone-50">Copy</button>
+              <button
+                type="button"
+                onClick={() => handleOpPaste("above")}
+                disabled={!opClipboard}
+                className="w-full text-left px-3 py-1.5 font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                Paste above
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOpPaste("below")}
+                disabled={!opClipboard}
+                className="w-full text-left px-3 py-1.5 font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                Paste below
+              </button>
+              <div className="my-1 border-t border-stone-100" />
+              <button type="button" onClick={handleOpDeleteSelected} className="w-full text-left px-3 py-1.5 font-semibold text-red-600 hover:bg-red-50">
+                Delete row{selectedOpIds.size > 1 ? "s" : ""}
+              </button>
+            </div>
+          )}
 
           <Section title="Section-wise Usage Summary" icon={GitBranch}>
             <div className="rounded-2xl border border-stone-200 bg-white p-3 space-y-2">
