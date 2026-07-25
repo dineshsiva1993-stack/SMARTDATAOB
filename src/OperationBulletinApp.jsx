@@ -548,10 +548,11 @@ const OB_HEADER_ALIASES = {
   heading: ["heading", "isheading", "section heading", "sectionheading"],
   section: ["section", "dept", "department", "deptt"],
   machine: ["machine", "machinename", "mc", "machtype"],
-  sam: ["sam", "smv", "std min", "stdmin", "stdtime", "time", "sammin"],
-  manpower: ["manpower", "mp", "manpower required", "noofoperator", "operators", "totalmanpower"],
+  sam: ["sam", "smv", "std min", "stdmin", "stdtime", "sammin"],
+  manpower: ["manpower", "mp", "manpowerrequired", "totalmanpower", "total"],
   op: ["op", "operator", "noofoperator", "opcount"],
   hp: ["hp", "helper", "helpers", "hpcount"],
+  qc: ["qc", "qccount", "noofqc", "checker", "checkers"],
 };
 const normHeaderCell = (c) => String(c ?? "").trim().toLowerCase().replace(/[^a-z]/g, "");
 function parseOperationsFromMasterSheet(aoa) {
@@ -572,12 +573,24 @@ function parseOperationsFromMasterSheet(aoa) {
   }
   if (headerRowIdx === -1) return null;
 
-  let description = "";
-  for (let r = 0; r < headerRowIdx; r++) {
-    const row = aoa[r] || [];
-    const idx = row.findIndex((c) => ["description", "styledescription"].includes(normHeaderCell(c)));
-    if (idx !== -1 && row[idx + 1]) { description = String(row[idx + 1]).trim(); break; }
-  }
+  // Prefer a specific "Style Description" label over a bare "Description" header — a lone
+  // "Description" can belong to an unrelated costing/summary block (as in real factory sheets)
+  // rather than actually naming the style. Also check the cell directly below the label (same
+  // column, next row), not just cells to its right, since layouts vary.
+  const findDescription = (labelSet) => {
+    for (let r = 0; r < headerRowIdx; r++) {
+      const row = aoa[r] || [];
+      const idx = row.findIndex((c) => labelSet.includes(normHeaderCell(c)));
+      if (idx === -1) continue;
+      for (let off = 1; off <= 3; off++) {
+        if (row[idx + off] !== undefined && String(row[idx + off]).trim() !== "") return String(row[idx + off]).trim();
+      }
+      const below = (aoa[r + 1] || [])[idx];
+      if (below !== undefined && String(below).trim() !== "") return String(below).trim();
+    }
+    return "";
+  };
+  const description = findDescription(["styledescription", "styledes", "styledesc"]) || findDescription(["description"]);
 
   const get = (row, field) => (colMap[field] !== undefined ? row[colMap[field]] : "");
   const operations = [];
@@ -588,24 +601,42 @@ function parseOperationsFromMasterSheet(aoa) {
     const slNo = get(row, "slNo");
     const opName = get(row, "operation");
     const heading = get(row, "heading");
-    const section = get(row, "section");
-    const isHeading = /^(y|yes|true|1)$/i.test(String(heading || "").trim()) || (!slNo && opName && !section);
+    const sectionRaw = get(row, "section");
+    const isHeading = /^(y|yes|true|1)$/i.test(String(heading || "").trim()) || (!slNo && opName && !sectionRaw);
     if (isHeading) {
       if (!opName) continue;
       operations.push({ ...blankOBOperation(), isHeading: true, name: String(opName) });
       continue;
     }
     if (!opName) continue;
+
+    // Real factory sheets usually give actual headcount via separate OP/HP/QC columns rather than
+    // one "Manpower" number (which is often a theoretical capacity ratio like 0.95, not a headcount)
+    // — so OP+HP+QC (when present) is the source of truth for manpower, matching allocatedMpOf().
+    const opCount = num(get(row, "op"));
+    const hpCount = num(get(row, "hp"));
+    const qcCount = num(get(row, "qc"));
+    const machineText = String(get(row, "machine") || "").trim();
+    let section = String(sectionRaw || "").trim().toLowerCase();
+    if (!section) {
+      section = (qcCount > 0 && opCount === 0 && hpCount === 0) || /^qc$/i.test(machineText) ? "qc" : "sewing";
+    }
+    let manpower;
+    if (opCount + hpCount > 0) manpower = String(opCount + hpCount);
+    else if (qcCount > 0) manpower = String(qcCount);
+    else manpower = String(get(row, "manpower") || "1");
+
     operations.push({
       ...blankOBOperation(),
       slNo: String(slNo || operations.filter((o) => !o.isHeading).length + 1),
       name: String(opName),
-      section: String(section || "sewing").toLowerCase(),
-      machine: String(get(row, "machine") || ""),
+      section,
+      machine: section === "qc" ? "" : machineText,
       sam: String(get(row, "sam") || ""),
-      manpower: String(get(row, "manpower") || "1"),
-      opCount: String(get(row, "op") || ""),
-      hpCount: String(get(row, "hp") || ""),
+      manpower,
+      opCount: opCount ? String(opCount) : "",
+      hpCount: hpCount ? String(hpCount) : "",
+      qcCount: qcCount ? String(qcCount) : "",
     });
   }
   return { description, operations };
