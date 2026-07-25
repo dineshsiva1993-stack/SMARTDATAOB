@@ -533,6 +533,63 @@ function readXlsxFile(file, onRows, onError) {
   reader.readAsArrayBuffer(file);
 
 }
+// Scans a raw sheet (array-of-arrays, via sheet_to_json {header:1}) for the Sl No/Operation/
+// Section/Machine/SAM/Manpower header row, wherever it sits inside a full factory OB Template file
+// (style header block above it, CM/DZN$/Plan Eff% costing summary below it) — used so an "OB
+// Template Upload" file can also be added to the OB Template Library (selectable by Style
+// Description), not just stored as a raw file.
+function parseOperationsFromMasterSheet(aoa) {
+  let headerRowIdx = -1;
+  let colMap = {};
+  for (let r = 0; r < aoa.length; r++) {
+    const row = aoa[r] || [];
+    const idx = row.findIndex((c) => String(c ?? "").trim().toLowerCase() === "sl no");
+    if (idx !== -1) {
+      headerRowIdx = r;
+      row.forEach((c, i) => { colMap[String(c ?? "").trim().toLowerCase()] = i; });
+      break;
+    }
+  }
+  if (headerRowIdx === -1) return null;
+
+  let description = "";
+  for (let r = 0; r < headerRowIdx; r++) {
+    const row = aoa[r] || [];
+    const idx = row.findIndex((c) => ["description", "style description"].includes(String(c ?? "").trim().toLowerCase()));
+    if (idx !== -1 && row[idx + 1]) { description = String(row[idx + 1]).trim(); break; }
+  }
+
+  const get = (row, key) => (colMap[key] !== undefined ? row[colMap[key]] : "");
+  const operations = [];
+  for (let r = headerRowIdx + 1; r < aoa.length; r++) {
+    const row = aoa[r] || [];
+    const anyValue = row.some((c) => String(c ?? "").trim() !== "");
+    if (!anyValue) break; // stop at the first blank row — that's the end of the operations table
+    const slNo = get(row, "sl no");
+    const opName = get(row, "operation") || get(row, "operation name");
+    const heading = get(row, "heading");
+    const section = get(row, "section");
+    const isHeading = /^(y|yes|true|1)$/i.test(String(heading || "").trim()) || (!slNo && opName && !section);
+    if (isHeading) {
+      if (!opName) continue;
+      operations.push({ ...blankOBOperation(), isHeading: true, name: String(opName) });
+      continue;
+    }
+    if (!opName) continue;
+    operations.push({
+      ...blankOBOperation(),
+      slNo: String(slNo || operations.filter((o) => !o.isHeading).length + 1),
+      name: String(opName),
+      section: String(section || "sewing").toLowerCase(),
+      machine: String(get(row, "machine") || ""),
+      sam: String(get(row, "sam") || ""),
+      manpower: String(get(row, "manpower") || "1"),
+      opCount: String(get(row, "op") || ""),
+      hpCount: String(get(row, "hp") || ""),
+    });
+  }
+  return { description, operations };
+}
 // Full-design Excel report export. The free SheetJS build (`xlsx` package) used above for plain
 // data round-tripping cannot write cell colors/borders/fonts — that's a Pro-only feature of that
 // library. Excel *does* fully respect inline CSS on an HTML table saved as .xls (no paid library
@@ -1180,7 +1237,7 @@ function EmptyState({ icon: Icon, title, body, actionLabel, onAction }) {
 
 // Reusable Photo Reference upload + preview control — used on New Style creation and on Add
 // Group (Sub Entries), so a reference photo can be attached and previewed right where it's needed.
-function PhotoRefUpload({ value, onChange, label = "Photo Reference", compact = false }) {
+function PhotoRefUpload({ value, onChange, label = "Photo Reference", compact = false, large = false }) {
   const inputRef = useRef(null);
   const handleFile = (e) => {
     const file = e.target.files?.[0];
@@ -1236,6 +1293,26 @@ function PhotoRefUpload({ value, onChange, label = "Photo Reference", compact = 
       <p className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">{label}</p>
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
       {value ? (
+        large ? (
+          <div className="relative w-full h-40 rounded-xl overflow-hidden border border-stone-200">
+            <img src={value} alt="Reference preview" className="w-full h-full object-contain bg-stone-50" />
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="absolute top-1.5 right-1.5 rounded-full bg-black/60 text-white p-1 active:bg-black/80"
+              title="Remove photo"
+            >
+              <X size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-1.5 bg-black/55 text-white py-1.5 text-xs font-bold active:bg-black/70"
+            >
+              <Upload size={13} /> Change photo
+            </button>
+          </div>
+        ) : (
         <div className="flex items-center gap-2.5">
           <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-stone-200 shrink-0">
             <img src={value} alt="Reference preview" className="w-full h-full object-cover" />
@@ -1256,13 +1333,16 @@ function PhotoRefUpload({ value, onChange, label = "Photo Reference", compact = 
             <Upload size={13} /> Change
           </button>
         </div>
+        )
       ) : (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-xl border-2 border-dashed border-stone-300 text-stone-500 px-3 py-2 text-xs font-bold active:bg-stone-50"
+          className={large
+            ? "w-full flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-stone-300 text-stone-500 px-3 py-6 text-xs font-bold active:bg-stone-50"
+            : "flex items-center gap-1.5 rounded-xl border-2 border-dashed border-stone-300 text-stone-500 px-3 py-2 text-xs font-bold active:bg-stone-50"}
         >
-          <Upload size={14} /> Upload Photo Reference
+          <Upload size={large ? 18 : 14} /> Upload Photo Reference
         </button>
       )}
     </div>
@@ -2050,8 +2130,28 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
           sheetNames: wb.SheetNames,
           dataBase64: arrayBufferToBase64(buffer),
         });
-        setMasterTemplateMsg(`"${file.name}" upload ஆச்சு ✓`);
-        setTimeout(() => setMasterTemplateMsg(""), 3000);
+
+        // Also try to pull the Sl No/Operation/Section/Machine/SAM/Manpower table out of this file
+        // (wherever it sits, even under a style header block) and drop it into the OB Template
+        // Library too — so it shows up as a selectable/loadable template, not just a raw file.
+        let libMsg = "";
+        for (const sheetName of wb.SheetNames) {
+          const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "" });
+          const parsed = parseOperationsFromMasterSheet(aoa);
+          if (parsed && parsed.operations.length > 0) {
+            const desc = (parsed.description || file.name.replace(/\.(xlsx|xls)$/i, "")).trim();
+            const existing = obTemplates.find((t) => t.description.trim().toLowerCase() === desc.toLowerCase());
+            const nextTemplates = existing
+              ? obTemplates.map((t) => (t.id === existing.id ? { ...t, operations: parsed.operations, updatedAt: Date.now() } : t))
+              : [...obTemplates, { id: uid(), description: desc, operations: parsed.operations, updatedAt: Date.now() }];
+            saveObTemplates(nextTemplates);
+            libMsg = ` — ${parsed.operations.filter((o) => !o.isHeading).length} operations "OB Template Library"-ல "${desc}" எனச் சேர்க்கப்பட்டது, Operations tab-ல Select பண்ணி Load பண்ணலாம்`;
+            break;
+          }
+        }
+
+        setMasterTemplateMsg(`"${file.name}" upload ஆச்சு ✓${libMsg}`);
+        setTimeout(() => setMasterTemplateMsg(""), 5000);
       } catch (err) {
         setMasterTemplateError("இந்த file-ஐ படிக்க முடியலை. சரியான Excel (.xlsx/.xls) file-ஐ upload பண்ணுங்க.");
       }
@@ -2589,7 +2689,7 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
         <div className="rounded-2xl border-2 border-dashed border-amber-300 bg-white p-4 space-y-3">
           <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">OB Template Upload</p>
           <p className="text-[11px] text-stone-500">
-            Factory-ல வேற எங்காவது இருக்கிற <b>OB TEMPLATE Excel file</b>-ஐ (உதா: "MB OB SHEET.xlsx") இங்க upload பண்ணுங்க — இந்த device-ல save ஆகி, எப்போ வேணா திரும்ப பாக்கலாம் / download பண்ணலாம். இது இந்த app-ல உள்ள operations data-வை பாதிக்காது.
+            Factory-ல வேற எங்காவது இருக்கிற <b>OB TEMPLATE Excel file</b>-ஐ (உதா: "MB OB SHEET.xlsx") இங்க upload பண்ணுங்க — இந்த device-ல save ஆகி, எப்போ வேணா திரும்ப பாக்கலாம் / download பண்ணலாம். இதுல இருக்கிற Sl No/Operation/Section/Machine/SAM/Manpower table-ஐயும் தானாகவே கண்டுபிடிச்சு <b>OB Template Library</b>-ல சேர்த்துடும் — Operations tab-ல Select பண்ணி Load பண்ணலாம். இது இப்போ இருக்கிற style-ஓட operations data-வை பாதிக்காது.
           </p>
 
           <div className="rounded-xl border border-dashed border-stone-300 bg-stone-50 p-3 flex flex-wrap items-center gap-2.5">
@@ -2717,7 +2817,7 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                 <Field label="Size" value={style.obSize || ""} onChange={(v) => onUpdateStyle({ ...style, obSize: v })} type="text" placeholder="e.g. S-XXL" />
               </div>
               <Field label="Style Description" value={style.obDescription || ""} onChange={(v) => onUpdateStyle({ ...style, obDescription: v })} type="text" placeholder="e.g. C Neck Long Sleeve" />
-              <PhotoRefUpload value={style.photoRef || ""} onChange={(v) => onUpdateStyle({ ...style, photoRef: v })} label="Garment Sketch / Photo (Product Costing sheet)" />
+              <PhotoRefUpload value={style.photoRef || ""} onChange={(v) => onUpdateStyle({ ...style, photoRef: v })} label="Garment Sketch / Photo (Product Costing sheet)" large />
               <PhotoGalleryUpload value={style.extraPhotoRefs || []} onChange={(v) => onUpdateStyle({ ...style, extraPhotoRefs: v })} label="Extra Photos (Product Costing & Operation Bulletin sheet-க்கும் போகும்)" />
 
               <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-3 space-y-2">
@@ -3252,19 +3352,6 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
                                 )}
                                 <td className="px-2 py-1.5">
                                   <button onClick={() => deleteOperation(op.id)} className="text-stone-300 active:text-red-600"><X size={14} /></button>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td colSpan={10} className="px-2 py-0.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => insertOperationAfter(op.id)}
-                                    className="w-full flex items-center gap-1.5 text-[10px] font-bold text-stone-300 active:text-amber-600 py-0.5 group"
-                                  >
-                                    <span className="flex-1 border-t border-dashed border-stone-200 group-active:border-amber-300" />
-                                    <Plus size={11} /> Insert operation here
-                                    <span className="flex-1 border-t border-dashed border-stone-200 group-active:border-amber-300" />
-                                  </button>
                                 </td>
                               </tr>
                             </React.Fragment>
