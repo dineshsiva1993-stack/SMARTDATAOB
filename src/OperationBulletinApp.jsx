@@ -538,15 +538,35 @@ function readXlsxFile(file, onRows, onError) {
 // (style header block above it, CM/DZN$/Plan Eff% costing summary below it) — used so an "OB
 // Template Upload" file can also be added to the OB Template Library (selectable by Style
 // Description), not just stored as a raw file.
+// Header spellings vary a LOT across factory files ("Sl.No" vs "Sl No" vs "S.No", "SMV" vs "SAM",
+// "M/C" vs "Machine", "MP" vs "Manpower"...) — normalize by stripping everything except letters,
+// then match against every known alias so real-world files (not just the exact sample layout)
+// actually get picked up.
+const OB_HEADER_ALIASES = {
+  slNo: ["slno", "sno", "sino", "sl"],
+  operation: ["operation", "operationname", "opname", "description", "process", "processname", "particulars", "opdescription"],
+  heading: ["heading", "isheading", "section heading", "sectionheading"],
+  section: ["section", "dept", "department", "deptt"],
+  machine: ["machine", "machinename", "mc", "machtype"],
+  sam: ["sam", "smv", "std min", "stdmin", "stdtime", "time", "sammin"],
+  manpower: ["manpower", "mp", "manpower required", "noofoperator", "operators", "totalmanpower"],
+  op: ["op", "operator", "noofoperator", "opcount"],
+  hp: ["hp", "helper", "helpers", "hpcount"],
+};
+const normHeaderCell = (c) => String(c ?? "").trim().toLowerCase().replace(/[^a-z]/g, "");
 function parseOperationsFromMasterSheet(aoa) {
   let headerRowIdx = -1;
   let colMap = {};
   for (let r = 0; r < aoa.length; r++) {
     const row = aoa[r] || [];
-    const idx = row.findIndex((c) => String(c ?? "").trim().toLowerCase() === "sl no");
+    const idx = row.findIndex((c) => OB_HEADER_ALIASES.slNo.includes(normHeaderCell(c)));
     if (idx !== -1) {
       headerRowIdx = r;
-      row.forEach((c, i) => { colMap[String(c ?? "").trim().toLowerCase()] = i; });
+      row.forEach((c, i) => {
+        const norm = normHeaderCell(c);
+        const field = Object.keys(OB_HEADER_ALIASES).find((k) => OB_HEADER_ALIASES[k].includes(norm));
+        if (field && colMap[field] === undefined) colMap[field] = i;
+      });
       break;
     }
   }
@@ -555,18 +575,18 @@ function parseOperationsFromMasterSheet(aoa) {
   let description = "";
   for (let r = 0; r < headerRowIdx; r++) {
     const row = aoa[r] || [];
-    const idx = row.findIndex((c) => ["description", "style description"].includes(String(c ?? "").trim().toLowerCase()));
+    const idx = row.findIndex((c) => ["description", "styledescription"].includes(normHeaderCell(c)));
     if (idx !== -1 && row[idx + 1]) { description = String(row[idx + 1]).trim(); break; }
   }
 
-  const get = (row, key) => (colMap[key] !== undefined ? row[colMap[key]] : "");
+  const get = (row, field) => (colMap[field] !== undefined ? row[colMap[field]] : "");
   const operations = [];
   for (let r = headerRowIdx + 1; r < aoa.length; r++) {
     const row = aoa[r] || [];
     const anyValue = row.some((c) => String(c ?? "").trim() !== "");
     if (!anyValue) break; // stop at the first blank row — that's the end of the operations table
-    const slNo = get(row, "sl no");
-    const opName = get(row, "operation") || get(row, "operation name");
+    const slNo = get(row, "slNo");
+    const opName = get(row, "operation");
     const heading = get(row, "heading");
     const section = get(row, "section");
     const isHeading = /^(y|yes|true|1)$/i.test(String(heading || "").trim()) || (!slNo && opName && !section);
@@ -1256,8 +1276,8 @@ function PhotoRefUpload({ value, onChange, label = "Photo Reference", compact = 
         <p className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">{label}</p>
         <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
         {value ? (
-          <div className="relative flex-1 min-h-[96px] rounded-xl overflow-hidden border border-stone-200">
-            <img src={value} alt="Reference preview" className="w-full h-full object-cover" />
+          <div className="relative flex-1 min-h-[140px] max-h-[260px] rounded-xl overflow-hidden border border-stone-200 bg-stone-50">
+            <img src={value} alt="Reference preview" className="w-full h-full object-contain" />
             <button
               type="button"
               onClick={() => onChange("")}
@@ -2150,8 +2170,11 @@ function OperationBulletinScreen({ styles, onUpdateStyle, onCreateStyle, obTab, 
           }
         }
 
+        if (!libMsg) {
+          libMsg = ` — ஆனா இதுல Sl No/Operation/Section/Machine/SAM/Manpower table கண்டுபிடிக்க முடியலை, அதனால OB Template Library-ல சேக்கலை. (${wb.SheetNames.join(", ")} sheets-ல ஏதாவது ஒன்ல "Sl No" எனும் column header இருக்கணும்.)`;
+        }
         setMasterTemplateMsg(`"${file.name}" upload ஆச்சு ✓${libMsg}`);
-        setTimeout(() => setMasterTemplateMsg(""), 5000);
+        setTimeout(() => setMasterTemplateMsg(""), 8000);
       } catch (err) {
         setMasterTemplateError("இந்த file-ஐ படிக்க முடியலை. சரியான Excel (.xlsx/.xls) file-ஐ upload பண்ணுங்க.");
       }
@@ -2767,6 +2790,18 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
             </label>
           ) : (
             <p className="text-xs text-stone-400">No styles yet — use the <b>New Style</b> item in the Operation Bulletin menu to create one.</p>
+          )}
+
+          {style && obTab === "target" && style.photoRef && (
+            <div className="flex items-center gap-2.5 rounded-xl border border-stone-200 bg-stone-50 p-2">
+              <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-stone-200 bg-white shrink-0">
+                <img src={style.photoRef} alt="Style" className="w-full h-full object-contain" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Style Photo</p>
+                <p className="text-xs font-bold text-stone-700 truncate">{style.styleNo || "Untitled"}{style.buyer ? ` · ${style.buyer}` : ""}</p>
+              </div>
+            </div>
           )}
 
           {style && obTab === "ops" && (
@@ -4022,7 +4057,7 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
           </>
           )}
 
-          {obTab === "balance" && (
+          {(obTab === "balance" || obTab === "ops") && (
           <>
           <Section title="Section-wise SMV" icon={Gauge}>
             <div className="rounded-2xl border border-stone-200 bg-white p-4 grid grid-cols-2 gap-2.5">
@@ -4135,7 +4170,7 @@ const rampTotalTarget = noOfLines > 0 ? rampPerLineTarget * noOfLines : num(styl
           </>
           )}
 
-          {obTab === "rampup" && (
+          {(obTab === "rampup" || obTab === "ops") && (
           <Section title="Order Ramp-up Plan (Day-wise Target)" icon={TrendingUp}>
             <div className="rounded-2xl border border-stone-200 bg-white p-4">
               <div className="grid grid-cols-2 gap-2.5 mb-3">
