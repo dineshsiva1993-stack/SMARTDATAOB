@@ -713,6 +713,10 @@ body.pdf-mode .md-hint{display:none !important;}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
         Manage Users
       </button>
+      <button class="side-nav-btn" data-tab="backup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        Backup &amp; Restore
+      </button>
       <button class="side-nav-btn" id="logout-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         Logout
@@ -978,10 +982,13 @@ body.pdf-mode .md-hint{display:none !important;}
         <button class="btn btn-primary btn-sm" id="md-add-toggle">+ Add Operation</button>
         <button class="btn btn-ghost btn-sm" id="md-blank-template-download" title="Download a blank Excel template with the right columns, to fill in and upload">⬇ Download Template</button>
         <button class="btn btn-ghost btn-sm" id="md-template-download" title="Download every style and operation currently in Master Data as one Excel file">⬇ Download Master Data (Excel)</button>
-        <button class="btn btn-ghost btn-sm" id="md-template-upload-btn" title="Upload a filled-in template to bulk-save Master Data">⬆ Upload Template</button>
+        <button class="btn btn-ghost btn-sm" id="md-template-upload-btn" title="Upload a filled-in template to bulk-save Master Data — select a folder or subfolder in the tree below first to keep this upload filed there only">⬆ Upload OB</button>
         <input type="file" id="md-template-upload-input" accept=".xlsx,.xls,.csv" style="display:none">
+        <button class="btn btn-ghost btn-sm" id="md-import-replace-btn" style="display:none;" title="Admin only — REPLACES all current Master Data (styles, operations, folders, images) with the Master Data inside a backup file from the other Operation Bulletin app (or a backup from this app). Users, Saved OBs and Layouts are not touched.">⟳ Replace from Backup</button>
+        <input type="file" id="md-import-replace-input" accept=".json,application/json" style="display:none">
+        <button class="btn btn-primary btn-sm" id="md-save-btn" style="background:var(--amber);border-color:var(--amber);margin-left:auto;" title="Save everything you've uploaded or changed here right now">💾 Save</button>
       </div>
-      <div class="md-hint" id="md-template-hint">Excel columns: <b>Style, Operation, Machine, SMV</b>. "Download Template" gives a blank sheet to fill in; "Download Master Data" gives every row currently saved (nothing left out). Fill either and use "Upload Template" to save it back.</div>
+      <div class="md-hint" id="md-template-hint">Excel columns: <b>Style, Operation, Machine, SMV</b>. "Download Template" gives a blank sheet to fill in; "Download Master Data" gives every row currently saved (nothing left out). Fill either and use "Upload OB" to save it back — select a folder/subfolder in the tree first to keep that upload filed there and separate from uploads made in other folders.</div>
       <div class="md-hint">Folders: click <b>+ New Folder</b> for a main folder, right-click a main folder for <b>+ New Subfolder</b>. Right-click any style pill below to <b>Move</b> or <b>Copy</b> it into a folder.</div>
       <div class="md-folder-tree" id="md-folder-tree"></div>
       <div class="style-pills" id="md-style-pills"></div>
@@ -1175,14 +1182,28 @@ body.pdf-mode .md-hint{display:none !important;}
       <div class="user-list-label" id="user-list-label">Users (0)</div>
       <div id="user-list-wrap"></div>
 
-      <div class="user-perm-label" style="margin-top:22px;">Backup &amp; Restore</div>
-      <div style="font-size:12px;color:var(--ink-soft);margin:-4px 0 12px;line-height:1.5;">Before updating the app to a new version, download a full backup here. If needed later, restore from that file to bring back Master Data, Users, Saved OBs, Layouts, Styles, History, and Assistant chats — nothing gets lost between updates.</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <button class="btn btn-primary btn-sm" id="backup-download-btn" type="button">⬇ Download Backup</button>
-        <button class="btn btn-ghost btn-sm" id="backup-upload-btn" type="button">⬆ Restore from Backup</button>
-        <input type="file" id="backup-upload-input" accept="application/json" style="display:none;">
+    </div>
+  </div>
+
+  <!-- ============ BACKUP & RESTORE PANEL ============ -->
+  <div class="panel" id="panel-backup">
+    <div class="card">
+      <div class="card-title"><span class="num">B</span>Backup &amp; Restore</div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0 0 18px;">Download everything in this app — Master Data, Users, Buyer wise Saved OBs, Layouts, History and Assistant chats — as one file. Keep it somewhere safe. If this computer/browser ever loses its data, import that file back to get everything again. Backup files from the other Operation Bulletin app can be imported here too.</p>
+
+      <div style="border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;">
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:6px;color:var(--navy);">Export Backup</div>
+        <div style="color:var(--ink-soft);font-size:12.5px;margin-bottom:12px;">Saves a .json file with all current app data.</div>
+        <button class="btn btn-primary" id="backup-export-btn">Download Backup File</button>
       </div>
-      <div id="backup-status" style="font-size:11.5px;color:var(--ink-soft);margin-top:8px;"></div>
+
+      <div style="border:1px solid var(--line);border-radius:10px;padding:16px;">
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:6px;color:var(--navy);">Import Backup</div>
+        <div style="color:var(--ink-soft);font-size:12.5px;margin-bottom:12px;">Choose a previously downloaded backup file to restore it. This overwrites current data with what's in the file.</div>
+        <input type="file" id="backup-import-input" accept="application/json,.json" style="display:none;">
+        <button class="btn btn-ghost" id="backup-import-btn">Choose Backup File to Restore</button>
+      </div>
+      <div id="backup-status" style="font-size:12px;color:var(--ink-soft);margin-top:12px;"></div>
     </div>
   </div>
 
@@ -1343,6 +1364,15 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
   let sketchDataUrl = null;
   let mdSelectedStyle = null; // filter pill in master tab
   let mdSelectedRow = null; // {style, idx} - row clicked in master data table, insertion anchor
+  // Set only via the right-click "Insert operation above/below" menu on a Master Data
+  // operation row. When set, the next saved operation lands at that exact index.
+  let mdExplicitInsertAt = null; // {style, atIdx}
+  let mdOpClipboard = null; // {data:{op,mc,smv}, mode:'copy'|'cut'} - Master Data row copied/cut via right-click
+  // True when reading Master Data from storage FAILED (network/outage) — different from
+  // "nothing saved yet". While true, autosave must NOT write Master Data back, or the blank/seed
+  // copy in memory would overwrite the real saved copy.
+  let masterLoadFailed = false;
+  let restoringBackup = false; // true while a backup is being written back — autosave must not interfere
   let mdEditingRow = null; // {style, idx} - row currently in inline edit mode
   let pillsExpanded = false;
   let openedSavedId = null; // id of the saved OB currently loaded in the builder, or null for a fresh/new one
@@ -1550,15 +1580,20 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
     // instead of waiting on four network round trips back to back — this
     // was a big chunk of why the app felt slow to open.
     const [mdRes, miRes, usRes, srRes, mfRes, msfRes, alRes, ntRes] = await Promise.all([
-      window.storage.get('ob_master_data').catch(()=>null),
-      window.storage.get('ob_master_images').catch(()=>null),
+      getWithRetry('ob_master_data'),
+      getWithRetry('ob_master_images'),
       window.storage.get('ob_users').catch(()=>null),
       window.storage.get('ob_current_sheet_v2').catch(()=>null),
-      window.storage.get('ob_master_folders').catch(()=>null),
-      window.storage.get('ob_md_style_folder').catch(()=>null),
+      getWithRetry('ob_master_folders'),
+      getWithRetry('ob_md_style_folder'),
       window.storage.get('ob_activity_log').catch(()=>null),
       window.storage.get('ob_notifications', true).catch(()=>null)
     ]);
+
+    // A master read that kept FAILING is not the same as "nothing saved yet" — remember it so
+    // persistAll() refuses to overwrite the real cloud copy with this blank/seed state.
+    masterLoadFailed = [mdRes, miRes, mfRes, msfRes].some(r => r && r.ok === false);
+    if(masterLoadFailed) toast('Could not load Master Data (connection issue) — reload the page before uploading or editing, or you may lose data');
 
     if(alRes && alRes.value){ try{ activityLog = JSON.parse(alRes.value) || []; }catch(e){} }
     if(ntRes && ntRes.value){ try{ notifications = JSON.parse(ntRes.value) || []; }catch(e){} }
@@ -1659,7 +1694,46 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
     clearTimeout(saveTimer);
     saveTimer = setTimeout(persistAll, 500);
   }
+  // Retries one storage write a few times with a short backoff before giving up —
+  // most failures are transient (brief network/rate-limit hiccup).
+  async function setWithRetry(key, value, attempts){
+    attempts = attempts || 3;
+    let lastErr;
+    for(let i = 0; i < attempts; i++){
+      try{
+        await window.storage.set(key, value);
+        return true;
+      }catch(e){
+        lastErr = e;
+        if(i < attempts - 1) await new Promise(r => setTimeout(r, 600 * (i + 1)));
+      }
+    }
+    throw lastErr;
+  }
+
+  // Retries one storage READ, and tells the caller WHICH thing happened:
+  //   found:false, ok:true -> genuinely nothing saved yet (normal on first run)
+  //   ok:false             -> the read itself kept failing; real data may still be in the
+  //                           cloud, so the caller must NOT treat this as blank.
+  async function getWithRetry(key, attempts){
+    attempts = attempts || 3;
+    let lastErr;
+    for(let i = 0; i < attempts; i++){
+      try{
+        const res = await window.storage.get(key);
+        return { ok:true, found:true, value: res.value };
+      }catch(e){
+        const msg = (e && (e.message || String(e))) || '';
+        if(/not.?found|does not exist|no such|missing/i.test(msg)) return { ok:true, found:false, value:null };
+        lastErr = e;
+        if(i < attempts - 1) await new Promise(r => setTimeout(r, 600 * (i + 1)));
+      }
+    }
+    return { ok:false, found:false, value:null, error:lastErr };
+  }
+
   async function persistAll(){
+    if(restoringBackup) return false;
     // These four writes are independent of each other, so firing them together
     // (instead of awaiting each one before starting the next) cuts save time
     // roughly 4x — previously a single "save" waited on four full network
@@ -1679,17 +1753,42 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
         rampHours: $('f-ramp-hours').value, rampEff: $('f-ramp-eff').value, actualSewingMp: $('f-actual-sewing-mp').value
       }
     };
-    await Promise.all([
-      window.storage.set('ob_master_data', JSON.stringify(masterData)).catch(()=>{}),
-      window.storage.set('ob_master_images', JSON.stringify(masterImages)).catch(()=>{}),
+    // Master Data is written with retries and REPORTS failures (instead of silently swallowing
+    // them), and is skipped entirely when its initial load could not be confirmed.
+    const masterLabeled = [];
+    if(!masterLoadFailed){
+      masterLabeled.push(['Master data', setWithRetry('ob_master_data', JSON.stringify(masterData))]);
+      masterLabeled.push(['Master images', setWithRetry('ob_master_images', JSON.stringify(masterImages))]);
+      masterLabeled.push(['Master folders', setWithRetry('ob_master_folders', JSON.stringify(mdFolders))]);
+      masterLabeled.push(['Folder mapping', setWithRetry('ob_md_style_folder', JSON.stringify(mdStyleFolder))]);
+    }
+    const otherWrites = [
       window.storage.set('ob_users', JSON.stringify(appUsers)).catch(()=>{}),
       window.storage.set('ob_current_sheet_v2', JSON.stringify(sheetPayload)).catch(()=>{}),
-      window.storage.set('ob_master_folders', JSON.stringify(mdFolders)).catch(()=>{}),
-      window.storage.set('ob_md_style_folder', JSON.stringify(mdStyleFolder)).catch(()=>{}),
       window.storage.set('ob_activity_log', JSON.stringify(activityLog.slice(0,300))).catch(()=>{}),
       window.storage.set('ob_notifications', JSON.stringify(notifications.slice(0,150)), true).catch(()=>{})
-    ]);
+    ];
+    const results = await Promise.allSettled(masterLabeled.map(l => l[1]).concat(otherWrites));
+    const failed = masterLabeled.map((l, i) => results[i].status === 'rejected' ? l[0] : null).filter(Boolean);
+    if(failed.length) toast('Save failed (' + failed.join(', ') + ') — check your connection and try again');
+    if(masterLoadFailed) toast('Master Data is NOT being saved right now (it couldn\'t be loaded) — reload the page to fix this');
+    return failed.length === 0 && !masterLoadFailed;
   }
+
+  // ---------- Master Data screen: explicit "Save" button ----------
+  // Everything on this screen already autosaves a moment after a change. This button saves
+  // right now (no debounce wait) and says plainly whether everything went through.
+  $('md-save-btn').addEventListener('click', async ()=>{
+    clearTimeout(saveTimer);
+    const btn = $('md-save-btn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    const ok = await persistAll();
+    btn.disabled = false;
+    btn.textContent = original;
+    if(ok) toast('✓ Everything is saved');
+  });
 
   // ---------- new style: reset builder to a blank OB ----------
   function resetBuilder(){
@@ -4647,9 +4746,9 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
     pushUndo();
     const sec = sheetSections[secIdx];
 
-    masterData[group] = masterData[group] || [];
-    const dup = masterData[group].find(o=>(o.op||'').toLowerCase() === name.toLowerCase());
-    if(!dup){ masterData[group].push({op:name, mc:machine, smv:smv}); } // keeps Master Data in sync too
+    // This operation only goes into the current sheet — it deliberately does NOT touch
+    // Master Data. Master Data changes only when someone works inside the Master Data
+    // screen itself (adding/editing an operation, or uploading a template).
 
     // Insert right after the row currently selected in the cost sheet (same
     // anchor behaviour as the Master Sheet picker), instead of always
@@ -5769,6 +5868,13 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
         renderMdRows();
         renderSelBanner();
       });
+      // Right-click an operation row to Insert above/below, Move to another style,
+      // Copy/Cut/Paste, or Delete.
+      tr.addEventListener('contextmenu', (e)=>{
+        if(tr.classList.contains('editing')) return;
+        e.preventDefault();
+        openMdOpCtxMenu(e.clientX, e.clientY, tr.dataset.style, +tr.dataset.idx);
+      });
     });
     wrap.querySelectorAll('.row-edit').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
@@ -5871,6 +5977,179 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
     };
     reader.readAsDataURL(file);
   });
+
+  // ---------- right-click context menu on an individual Master Data operation row ----------
+  // Same menu style as the one on rows in the cost sheet builder (Insert above/below,
+  // Copy/Cut/Paste, Delete) plus "Move to another style…", since a Master Data row lives
+  // inside a style instead of a section.
+  function closeMdOpCtxMenu(){
+    const m = document.getElementById('md-op-ctx-menu');
+    if(m) m.remove();
+  }
+
+  function openMdOpCtxMenu(x, y, style, idx){
+    closeMdOpCtxMenu();
+    const canManage = !currentUser || currentUser.admin || currentUser.permDelete;
+    const canCreate = !currentUser || currentUser.admin || currentUser.permCreate;
+    const menu = document.createElement('div');
+    menu.id = 'md-op-ctx-menu';
+    menu.className = 'ctx-menu';
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    menu.innerHTML = `
+      <button class="ctx-item" data-act="insert-above" ${canCreate ? '' : 'disabled'}>Insert operation above</button>
+      <button class="ctx-item" data-act="insert-below" ${canCreate ? '' : 'disabled'}>Insert operation below</button>
+      <button class="ctx-item" data-act="move" ${canManage ? '' : 'disabled'}>Move to another style…</button>
+      <div class="ctx-sep"></div>
+      <button class="ctx-item" data-act="copy">Copy</button>
+      <button class="ctx-item" data-act="cut" ${canManage ? '' : 'disabled'}>Cut</button>
+      <button class="ctx-item" data-act="paste" ${(canCreate && mdOpClipboard) ? '' : 'disabled'}>Paste ${mdOpClipboard ? 'below' : ''}</button>
+      <div class="ctx-sep"></div>
+      <button class="ctx-item ctx-danger" data-act="delete" ${canManage ? '' : 'disabled'}>Delete</button>
+    `;
+    document.body.appendChild(menu);
+
+    const rect = menu.getBoundingClientRect();
+    if(rect.right > window.innerWidth) menu.style.left = Math.max(8, window.innerWidth - rect.width - 8) + 'px';
+    if(rect.bottom > window.innerHeight) menu.style.top = Math.max(8, window.innerHeight - rect.height - 8) + 'px';
+
+    menu.querySelectorAll('.ctx-item').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(btn.disabled) return;
+        handleMdOpCtxAction(btn.dataset.act, style, idx);
+        closeMdOpCtxMenu();
+      });
+    });
+  }
+
+  document.addEventListener('click', closeMdOpCtxMenu);
+  document.addEventListener('contextmenu', (e)=>{
+    if(!e.target.closest('tr.md-rows-row')) closeMdOpCtxMenu();
+  });
+  document.addEventListener('scroll', closeMdOpCtxMenu, true);
+  window.addEventListener('resize', closeMdOpCtxMenu);
+
+  function handleMdOpCtxAction(act, style, idx){
+    const list = masterData[style];
+    if(!list) return;
+
+    if(act === 'insert-above' || act === 'insert-below'){
+      mdOpenAddFormForInsert(style, act === 'insert-above' ? idx : idx + 1);
+      return;
+    }
+
+    if(act === 'move'){
+      openMdOpMoveModal(style, idx);
+      return;
+    }
+
+    if(act === 'copy' || act === 'cut'){
+      const row = list[idx];
+      if(!row) return;
+      mdOpClipboard = { data: JSON.parse(JSON.stringify(row)), mode: act };
+      if(act === 'cut'){
+        pushUndo();
+        list.splice(idx, 1);
+        if(mdSelectedRow && mdSelectedRow.style===style && mdSelectedRow.idx===idx) mdSelectedRow = null;
+        renderStylePills();
+        renderMdRows();
+        renderSelBanner();
+        schedulePersist();
+      }
+      toast(act === 'copy' ? 'Operation copied' : 'Operation cut — right-click a row and choose Paste');
+      return;
+    }
+
+    if(act === 'paste'){
+      if(!mdOpClipboard) return;
+      pushUndo();
+      list.splice(idx + 1, 0, JSON.parse(JSON.stringify(mdOpClipboard.data)));
+      renderStylePills();
+      renderMdRows();
+      renderSelBanner();
+      schedulePersist();
+      toast('Operation pasted');
+      return;
+    }
+
+    if(act === 'delete'){
+      pushUndo();
+      list.splice(idx, 1);
+      if(mdSelectedRow && mdSelectedRow.style===style && mdSelectedRow.idx===idx) mdSelectedRow = null;
+      renderStylePills();
+      renderMdRows();
+      renderSelBanner();
+      schedulePersist();
+      toast('Operation removed');
+    }
+  }
+
+  // Opens the existing "Add Operation" form locked to one style, inserting the new
+  // operation at an EXACT index (via mdExplicitInsertAt) instead of after the selected row.
+  function mdOpenAddFormForInsert(style, atIdx){
+    mdExplicitInsertAt = { style: style, atIdx: atIdx };
+    $('create-op-form').style.display = 'none';
+    const form = $('add-op-form');
+    form.style.display = 'grid';
+    const sel = $('new-op-style');
+    sel.innerHTML = styleList().map(s=>`<option value="${escAttr(s)}">${escHtml(s)}</option>`).join('') + `<option value="__new__">+ New style...</option>`;
+    sel.value = style;
+    sel.disabled = true;
+    $('new-op-name').focus();
+    form.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  // ---------- Move operation modal: "Move to another style…" ----------
+  function closeMdOpMoveModal(){
+    const m = document.getElementById('md-op-move-backdrop');
+    if(m) m.remove();
+  }
+  function openMdOpMoveModal(style, idx){
+    closeMdOpMoveModal();
+    const op = masterData[style] && masterData[style][idx];
+    if(!op) return;
+    const targets = styleList().filter(s => s !== style);
+    const list = targets.length
+      ? targets.map(s => `<button class="folder-pick-item" data-style="${escAttr(s)}">${escHtml(s)}</button>`).join('')
+      : `<div class="modal-empty">No other styles to move to yet.</div>`;
+    const overlay = document.createElement('div');
+    overlay.id = 'md-op-move-backdrop';
+    overlay.className = 'modal-backdrop';
+    overlay.innerHTML = `
+      <div class="modal-box" style="max-width:420px;">
+        <div class="modal-head">
+          <div><h3 style="font-size:16px;">Move "${escHtml(op.op)}" to…</h3></div>
+          <button class="modal-close" id="md-op-move-close" title="Close">&times;</button>
+        </div>
+        <div class="folder-pick-list">${list}</div>
+        <div class="modal-foot"><button class="btn btn-ghost btn-sm" id="md-op-move-cancel">Cancel</button></div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeMdOpMoveModal(); });
+    $('md-op-move-close').addEventListener('click', closeMdOpMoveModal);
+    $('md-op-move-cancel').addEventListener('click', closeMdOpMoveModal);
+    overlay.querySelectorAll('.folder-pick-item[data-style]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const targetStyle = btn.dataset.style;
+        pushUndo();
+        const currentList = masterData[style];
+        if(!currentList || !currentList[idx]){ closeMdOpMoveModal(); return; }
+        const [moved] = currentList.splice(idx, 1);
+        masterData[targetStyle] = masterData[targetStyle] || [];
+        masterData[targetStyle].push(moved);
+        if(mdSelectedRow && mdSelectedRow.style===style && mdSelectedRow.idx===idx) mdSelectedRow = null;
+        renderFolderTree();
+        renderStylePills();
+        renderMdRows();
+        renderSelBanner();
+        schedulePersist();
+        toast('Moved "' + moved.op + '" to "' + targetStyle + '"');
+        closeMdOpMoveModal();
+      });
+    });
+  }
 
   // ---------- right-click context menu on a Master Data style group (pill or header) ----------
   function closeMdGroupCtxMenu(){
@@ -6291,6 +6570,7 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
   $('md-search-input').addEventListener('input', renderMdRows);
 
   $('md-add-toggle').addEventListener('click', ()=>{
+    mdExplicitInsertAt = null; // opening via the button always uses the "after selected row" behaviour, not a right-click insert
     $('create-op-form').style.display = 'none';
     const form = $('add-op-form');
     form.style.display = form.style.display === 'none' ? 'grid' : 'none';
@@ -6316,12 +6596,18 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
     masterData[style] = masterData[style] || [];
     const newOp = {op:name, mc:machine, smv:smv};
 
-    if(mdSelectedRow && mdSelectedRow.style === style && masterData[style][mdSelectedRow.idx]){
+    if(mdExplicitInsertAt && mdExplicitInsertAt.style === style){
+      // Came from the right-click "Insert operation above/below" menu — land at that exact index.
+      const atIdx = Math.max(0, Math.min(mdExplicitInsertAt.atIdx, masterData[style].length));
+      masterData[style].splice(atIdx, 0, newOp);
+      mdSelectedRow = {style: style, idx: atIdx};
+    } else if(mdSelectedRow && mdSelectedRow.style === style && masterData[style][mdSelectedRow.idx]){
       masterData[style].splice(mdSelectedRow.idx + 1, 0, newOp);
       mdSelectedRow = {style: style, idx: mdSelectedRow.idx + 1}; // keep selection on the new row
     } else {
       masterData[style].push(newOp);
     }
+    mdExplicitInsertAt = null;
 
     $('new-op-name').value=''; $('new-op-machine').value=''; $('new-op-smv').value='';
     renderFolderTree();
@@ -6592,6 +6878,17 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
         });
         const savedCount = validRows.length;
 
+        // If a folder or subfolder is selected in the tree, file every style touched by this
+        // upload into it — so an OB uploaded while a specific subfolder is open stays separate
+        // from uploads made while another folder is selected, instead of everything landing in
+        // one shared, unfiled pile.
+        let filedInto = null;
+        if(mdFolderFilter && mdFolderFilter !== '__unfiled__' && mdFolders[mdFolderFilter]){
+          filedInto = mdFolders[mdFolderFilter].name;
+          stylesTouched.forEach(s => { mdStyleFolder[s] = mdFolderFilter; });
+          renderFolderTree();
+        }
+
         mdSelectedRow = null;
         // Clear whatever pill/search filter was active — otherwise the upload saves fine
         // but stays hidden behind the old filter and looks like nothing happened.
@@ -6602,13 +6899,112 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
         renderSelBanner();
         renderSections();
         schedulePersist();
-        toast(savedCount + ' operation(s) saved across ' + stylesTouched.size + ' style(s)' + (skipped ? ' — ' + skipped + ' row(s) skipped (missing Style/Operation)' : ''));
+        toast(savedCount + ' operation(s) saved across ' + stylesTouched.size + ' style(s)' + (filedInto ? ' — filed into "' + filedInto + '"' : '') + (skipped ? ' — ' + skipped + ' row(s) skipped (missing Style/Operation)' : ''));
       }catch(err){
         toast('Could not read that file — please use the downloaded template format');
       }
       e.target.value = '';
     };
     reader.readAsArrayBuffer(file);
+  });
+
+  // ---------- Replace ALL Master Data from a backup file (admin only) ----------
+  // Accepts a backup file made by the other Operation Bulletin app ({data:{ob_master_bundle:...}}),
+  // by this app's own Backup ({singletons:{ob_master_data:...}}), or a raw Master Data bundle.
+  // ONLY Master Data (styles → operations, reference images, folders, style→folder mapping) is
+  // taken from the file and it fully REPLACES what is here. Users, Saved OBs, Layouts, History
+  // and the current sheet are left exactly as they are.
+  function mdParseMaybeJson(v){
+    if(v === undefined || v === null) return null;
+    if(typeof v === 'string'){ try{ return JSON.parse(v); }catch(e){ return null; } }
+    return v;
+  }
+  function extractMasterFromBackup(parsed){
+    if(!parsed || typeof parsed !== 'object') return null;
+    const bag = (parsed.data && typeof parsed.data === 'object') ? parsed.data
+              : (parsed.singletons && typeof parsed.singletons === 'object') ? parsed.singletons
+              : null;
+    let md, mi, mf, msf;
+    if(bag){
+      const bundle = mdParseMaybeJson(bag.ob_master_bundle);
+      if(bundle && typeof bundle === 'object'){
+        md = bundle.masterData; mi = bundle.masterImages; mf = bundle.mdFolders; msf = bundle.mdStyleFolder;
+      } else {
+        md = mdParseMaybeJson(bag.ob_master_data); mi = mdParseMaybeJson(bag.ob_master_images);
+        mf = mdParseMaybeJson(bag.ob_master_folders); msf = mdParseMaybeJson(bag.ob_md_style_folder);
+      }
+    } else if(parsed.masterData){
+      md = parsed.masterData; mi = parsed.masterImages; mf = parsed.mdFolders; msf = parsed.mdStyleFolder;
+    }
+    if(!md || typeof md !== 'object') return null;
+    // clean: keep only real operations, same defensive cleanup as the normal load
+    const cleanMd = {};
+    Object.keys(md).forEach(s=>{
+      if(!Array.isArray(md[s])) return;
+      cleanMd[s] = md[s]
+        .filter(o => o && typeof o.op === 'string' && o.op.trim())
+        .map(o => ({ op:o.op, mc: o.mc || '', smv: (typeof o.smv === 'number' ? o.smv : (parseFloat(o.smv) || 0)) }));
+    });
+    const cleanMf = (mf && typeof mf === 'object') ? JSON.parse(JSON.stringify(mf)) : {};
+    Object.keys(cleanMf).forEach(id=>{
+      const f = cleanMf[id];
+      if(!f || typeof f.name !== 'string'){ delete cleanMf[id]; return; }
+    });
+    Object.keys(cleanMf).forEach(id=>{
+      const f = cleanMf[id];
+      if(f.parentId && !cleanMf[f.parentId]) f.parentId = null;
+    });
+    const cleanMsf = {};
+    if(msf && typeof msf === 'object'){
+      Object.keys(msf).forEach(s=>{ if(cleanMd[s] && cleanMf[msf[s]]) cleanMsf[s] = msf[s]; });
+    }
+    return { masterData: cleanMd, masterImages: (mi && typeof mi === 'object') ? mi : {}, mdFolders: cleanMf, mdStyleFolder: cleanMsf };
+  }
+
+  async function applyMasterReplace(m){
+    pushUndo();
+    masterData = m.masterData;
+    masterImages = m.masterImages;
+    mdFolders = m.mdFolders;
+    mdStyleFolder = m.mdStyleFolder;
+    mdFolderIdSeq = 1;
+    Object.keys(mdFolders).forEach(id=>{
+      const n = parseInt(id.replace(/[^0-9]/g,''), 10);
+      if(!isNaN(n) && n >= mdFolderIdSeq) mdFolderIdSeq = n + 1;
+    });
+    mdSelectedStyle = null; mdSelectedRow = null; mdEditingRow = null; mdExplicitInsertAt = null;
+    mdFolderFilter = null; mdFoldersOpen = {};
+    $('md-search-input').value = '';
+    renderFolderTree(); renderStylePills(); renderMdRows(); renderSelBanner(); renderSections();
+    clearTimeout(saveTimer);
+    const ok = await persistAll();
+    toast(ok ? '✓ Master Data replaced and saved' : 'Master Data replaced here, but saving failed — click 💾 Save again');
+  }
+
+  $('md-import-replace-btn').addEventListener('click', ()=> $('md-import-replace-input').click());
+  $('md-import-replace-input').addEventListener('change', async (e)=>{
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    if(!(currentUser && currentUser.admin)){ toast('Only an admin can replace Master Data'); return; }
+    if(masterLoadFailed){ toast('Master Data could not be loaded earlier (connection issue) — reload the page first, then try again'); return; }
+    let m = null;
+    try{ m = extractMasterFromBackup(JSON.parse(await file.text())); }catch(err){ m = null; }
+    if(!m || !Object.keys(m.masterData).length){
+      toast('No Master Data found in that file — use the backup file exported from the other Operation Bulletin app');
+      return;
+    }
+    const nStyles = Object.keys(m.masterData).length;
+    const nOps = Object.values(m.masterData).reduce((a,l)=>a+l.length,0);
+    const nFolders = Object.keys(m.mdFolders).length;
+    const nImgs = Object.keys(m.masterImages).length;
+    showConfirmModal(
+      'This will REMOVE all Master Data currently in this app and replace it with the Master Data from "' + file.name + '": ' +
+      nStyles + ' styles, ' + nOps + ' operations, ' + nFolders + ' folder(s)/subfolder(s)' + (nImgs ? ', ' + nImgs + ' reference image(s)' : '') +
+      '. Users, Saved OBs and Layouts will NOT be changed. Continue?',
+      ()=> applyMasterReplace(m),
+      {title:'Replace Master Data', yesLabel:'Replace', danger:true}
+    );
   });
 
   // ---------- Backup & Restore (admin only) ----------
@@ -6655,66 +7051,136 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
     await Promise.all(ops);
   }
 
-  const backupDownloadBtn = $('backup-download-btn');
-  const backupUploadBtn = $('backup-upload-btn');
-  const backupUploadInput = $('backup-upload-input');
-  const backupStatusEl = $('backup-status');
+  // ---- Backup file <-> flat {key: value} map ----
+  // File format matches the other Operation Bulletin app: { app, exportedAt, data:{ key: value } }.
+  // Older backups made by THIS app ({singletons, collections}) are still accepted.
+  function backupIsKnownKey(k){
+    return BACKUP_SINGLETON_KEYS.indexOf(k) !== -1 || BACKUP_PREFIX_KEYS.some(pf => k.indexOf(pf) === 0);
+  }
+  function backupToFlatData(parsed){
+    if(!parsed || typeof parsed !== 'object') return null;
+    let flat = null;
+    if(parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)){
+      flat = Object.assign({}, parsed.data);
+    } else if(parsed.singletons || parsed.collections){
+      flat = Object.assign({}, parsed.singletons || {});
+      Object.keys(parsed.collections || {}).forEach(pf => Object.assign(flat, parsed.collections[pf] || {}));
+    }
+    if(!flat) return null;
+    // The other app keeps Master Data in ONE key (ob_master_bundle); this app keeps four.
+    // Expand it (an explicit four-key value in the same file wins).
+    if(flat.ob_master_bundle !== undefined){
+      const b = mdParseMaybeJson(flat.ob_master_bundle);
+      if(b && typeof b === 'object'){
+        const put = (k, v) => { if(flat[k] === undefined && v !== undefined && v !== null) flat[k] = JSON.stringify(v); };
+        put('ob_master_data', b.masterData); put('ob_master_images', b.masterImages);
+        put('ob_master_folders', b.mdFolders); put('ob_md_style_folder', b.mdStyleFolder);
+      }
+      delete flat.ob_master_bundle;
+    }
+    const out = {};
+    Object.keys(flat).forEach(k=>{
+      const v = flat[k];
+      if(v === undefined || v === null || !backupIsKnownKey(k)) return;
+      out[k] = (typeof v === 'string') ? v : JSON.stringify(v);
+    });
+    return out;
+  }
 
-  if(backupDownloadBtn) backupDownloadBtn.addEventListener('click', async ()=>{
+  async function exportBackup(){
     if(!(currentUser && currentUser.admin)){ toast('Only an admin can take a backup'); return; }
-    backupDownloadBtn.disabled = true;
-    if(backupStatusEl) backupStatusEl.textContent = 'Preparing backup…';
+    const btn = $('backup-export-btn'), statusEl = $('backup-status');
+    if(btn) btn.disabled = true;
+    if(statusEl) statusEl.textContent = 'Preparing backup…';
     try{
-      const backup = await collectFullBackup();
+      const b = await collectFullBackup();
+      const data = Object.assign({}, b.singletons);
+      Object.keys(b.collections).forEach(pf => Object.assign(data, b.collections[pf]));
+      // also write Master Data as the single combined key the other app reads
+      try{
+        data.ob_master_bundle = JSON.stringify({
+          masterData: JSON.parse(data.ob_master_data || '{}'),
+          masterImages: JSON.parse(data.ob_master_images || '{}'),
+          mdFolders: JSON.parse(data.ob_master_folders || '{}'),
+          mdStyleFolder: JSON.parse(data.ob_md_style_folder || '{}')
+        });
+      }catch(e){ /* master keys missing/unreadable — leave the bundle out */ }
+      const backup = { app:'Operation Bulletin — Cost Sheet Builder', exportedAt:new Date().toISOString(), data:data };
       const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
       a.href = url;
-      a.download = 'ob-backup-' + stamp + '.json';
+      a.download = 'ob-backup-' + new Date().toISOString().slice(0,10) + '.json';
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      if(backupStatusEl) backupStatusEl.textContent = 'Backup downloaded — keep this file safe before updating the app.';
+      if(statusEl) statusEl.textContent = 'Backup downloaded — keep this file safe before updating the app.';
       toast('Backup downloaded');
     }catch(e){
-      if(backupStatusEl) backupStatusEl.textContent = 'Could not prepare the backup. Try again.';
-      toast('Backup failed');
-    } finally {
-      backupDownloadBtn.disabled = false;
+      if(statusEl) statusEl.textContent = 'Could not create the backup. Try again.';
+      toast('Could not create backup — try again');
+    }finally{
+      if(btn) btn.disabled = false;
     }
-  });
+  }
 
-  if(backupUploadBtn) backupUploadBtn.addEventListener('click', ()=>{
-    if(!(currentUser && currentUser.admin)){ toast('Only an admin can restore a backup'); return; }
-    if(backupUploadInput) backupUploadInput.click();
-  });
+  async function importBackupData(flat){
+    const statusEl = $('backup-status');
+    restoringBackup = true;           // stop autosave from writing old in-memory data over the restore
+    clearTimeout(saveTimer);
+    if(statusEl) statusEl.textContent = 'Restoring…';
+    const keys = Object.keys(flat);
+    let failed = 0;
+    for(const k of keys){
+      try{ await setWithRetry(k, flat[k]); }catch(e){ failed++; }
+    }
+    if(failed){
+      restoringBackup = false;
+      if(statusEl) statusEl.textContent = 'Restore finished with ' + failed + ' of ' + keys.length + ' items failing — check your connection and import the file again. Do not close the app yet.';
+      toast('Restore incomplete (' + failed + ' failed) — import the file again');
+      return;
+    }
+    if(statusEl) statusEl.textContent = 'Backup restored. Reloading…';
+    toast('Backup restored — reloading…');
+    setTimeout(()=> location.reload(), 1200);
+  }
 
-  if(backupUploadInput) backupUploadInput.addEventListener('change', ()=>{
-    const file = backupUploadInput.files && backupUploadInput.files[0];
-    backupUploadInput.value = '';
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      let parsed;
-      try{ parsed = JSON.parse(reader.result); }catch(e){ toast('That file is not a valid backup'); return; }
-      if(!parsed || !parsed.singletons || !parsed.collections){ toast('That file is not a valid backup'); return; }
-      showConfirmModal('Restore this backup? This will OVERWRITE current Master Data, Users, Saved OBs, Layouts, Styles, History and Assistant chats with what is inside the file.', async ()=>{
-        if(backupStatusEl) backupStatusEl.textContent = 'Restoring…';
-        try{
-          await restoreFullBackup(parsed);
-          if(backupStatusEl) backupStatusEl.textContent = 'Backup restored. Reloading…';
-          toast('Backup restored — reloading');
-          setTimeout(()=> location.reload(), 900);
-        }catch(e){
-          if(backupStatusEl) backupStatusEl.textContent = 'Restore failed partway — please check your data.';
-          toast('Restore failed');
-        }
-      }, {title:'Restore Backup', yesLabel:'Restore & Overwrite', danger:true});
-    };
-    reader.readAsText(file);
-  });
+  const backupExportBtn = $('backup-export-btn');
+  if(backupExportBtn) backupExportBtn.addEventListener('click', exportBackup);
+  const backupImportBtn = $('backup-import-btn');
+  const backupImportInput = $('backup-import-input');
+  if(backupImportBtn && backupImportInput){
+    backupImportBtn.addEventListener('click', ()=>{
+      if(!(currentUser && currentUser.admin)){ toast('Only an admin can restore a backup'); return; }
+      backupImportInput.click();
+    });
+    backupImportInput.addEventListener('change', async (e)=>{
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if(!file) return;
+      if(!(currentUser && currentUser.admin)){ toast('Only an admin can restore a backup'); return; }
+      let flat = null;
+      try{ flat = backupToFlatData(JSON.parse(await file.text())); }catch(err){ flat = null; }
+      if(!flat || !Object.keys(flat).length){ toast('That file is not a valid backup (nothing to restore)'); return; }
+      const md = mdParseMaybeJson(flat.ob_master_data);
+      const nStyles = md && typeof md === 'object' ? Object.keys(md).length : 0;
+      const nSaved = Object.keys(flat).filter(k => k.indexOf('ob_saved:') === 0).length;
+      const nLayouts = Object.keys(flat).filter(k => k.indexOf('layout_saved:') === 0).length;
+      const usersInFile = mdParseMaybeJson(flat.ob_users);
+      const parts = [];
+      if(flat.ob_master_data) parts.push('Master Data (' + nStyles + ' styles)');
+      if(Array.isArray(usersInFile)) parts.push('Users (' + usersInFile.length + ')');
+      if(nSaved) parts.push(nSaved + ' saved OB(s)');
+      if(nLayouts) parts.push(nLayouts + ' layout(s)');
+      showConfirmModal(
+        'This will OVERWRITE the current app data with what is inside "' + file.name + '"' + (parts.length ? ': ' + parts.join(', ') : '') +
+        '. Anything the file does not contain stays as it is' + (Array.isArray(usersInFile) ? ', and the file\'s users replace the current user list (the admin login always stays available)' : '') + '. Continue?',
+        ()=> importBackupData(flat),
+        {title:'Restore backup', yesLabel:'Restore & Overwrite', danger:true}
+      );
+    });
+  }
 
   // ---------- Manage Users ----------
   const MENU_LABELS = {dashboard:'Dashboard', costsheet:'New Style / Operations', master:'Master Data', layout:'Layout', saved:'Buyer wise OB Saved', styles:'Styles', assistant:'AI Assistant', history:'History', users:'Manage Users'};
@@ -6956,7 +7422,7 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
   function applyUserAccess(){
     document.querySelectorAll('.side-nav-btn[data-tab]').forEach(btn=>{
       const tab = btn.dataset.tab;
-      const allowed = tab === 'users' ? currentUser.admin : (currentUser.admin || (currentUser.menus||[]).includes(tab));
+      const allowed = (tab === 'users' || tab === 'backup') ? currentUser.admin : (currentUser.admin || (currentUser.menus||[]).includes(tab));
       btn.style.display = allowed ? '' : 'none';
     });
     if($('notif-bell-btn')){
@@ -6974,6 +7440,8 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
     if(blankTemplateBtn) blankTemplateBtn.style.display = canDownloadMd ? '' : 'none';
     if(downloadBtn) downloadBtn.style.display = canDownloadMd ? '' : 'none';
     if(uploadBtn) uploadBtn.style.display = canUploadMd ? '' : 'none';
+    const replaceBtn = $('md-import-replace-btn');
+    if(replaceBtn) replaceBtn.style.display = currentUser.admin ? '' : 'none';
   }
 
   function completeLogin(user, opts){
