@@ -2376,24 +2376,24 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
     const target = document.getElementById('layout-print-card');
     document.body.classList.add('pdf-mode');
     toast('Preparing PDF…');
+    const done = ()=>{ document.body.classList.remove('pdf-mode'); };
+    const fail = (err)=>{ done(); console.error(err); toast('PDF export failed — please try again'); };
+    const ok = ()=>{ done(); toast('PDF downloaded'); logActivity('Downloaded Layout PDF', currentLayout.style || ''); };
+    // Fit whole layout on ONE A4 landscape page (scaled, centered, never cropped)
     html2pdf().set({
-      margin: 8,
-      filename: filename,
-      image: { type: 'png', quality: 1 },
-      html2canvas: { scale: 3, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: target.scrollWidth, windowHeight: target.scrollHeight },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      pagebreak: { mode: ['css','avoid-all'] }
-    }).from(target).toPdf().get('pdf').then((pdf)=>{
-      stripTrailingBlankPages(pdf);
-    }).save().then(()=>{
-      document.body.classList.remove('pdf-mode');
-      toast('PDF downloaded');
-      logActivity('Downloaded Layout PDF', currentLayout.style || '');
-    }).catch((err)=>{
-      document.body.classList.remove('pdf-mode');
-      console.error(err);
-      toast('PDF export failed — please try again');
-    });
+      html2canvas: { scale: 3, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: target.scrollWidth, windowHeight: target.scrollHeight }
+    }).from(target).toCanvas().get('canvas').then((canvas)=>{
+      const J = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+      if(!J) throw new Error('jsPDF not found');
+      const pdf = new J({ unit:'mm', format:'a4', orientation:'landscape' });
+      const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+      const m = 8, aw = pw - m*2, ah = ph - m*2;
+      const ratio = canvas.width / canvas.height;
+      let w = aw, h = w / ratio;
+      if(h > ah){ h = ah; w = h * ratio; }
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', (pw - w)/2, m, w, h);
+      pdf.save(filename);
+    }).then(ok).catch(fail);
   });
 
   async function fetchLayoutList(){
@@ -3958,16 +3958,16 @@ const SEED_MASTER_DATA = {"BASIC T-SHIRT": [{"op": "SHOULDER JOIN & LOADING", "m
       toast('Could not prepare the PDF — please try again');
       return;
     }
-    container.innerHTML = container2html;
+    container.innerHTML = '<style>tr,thead,svg,img{page-break-inside:avoid;break-inside:avoid;} table{max-width:100%;}</style>' + container2html;
     document.body.appendChild(container);
     toast('Preparing PDF…');
     html2pdf().set({
-      margin: 6,
+      margin: [8,6,8,6],
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 912 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css'], before: '.report-page-break' }
+      pagebreak: { mode: ['css','legacy'], before: '.report-page-break', avoid: ['tr','thead','svg','img','.pdf-avoid','.report-card'] }
     }).from(container).toPdf().get('pdf').then((pdf)=>{
       stripTrailingBlankPages(pdf);
     }).save().then(()=>{
